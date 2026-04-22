@@ -6,43 +6,43 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Função auxiliar para verificar se está autenticado (mesmo que anonimamente)
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Regras para as coleções: Só pode ler/escrever se o userId do documento bater com o auth.uid
-    
+    // Helper para verificar se o documento pertence ao usuário
+    // Usamos has('userId') para evitar erros se o campo não existir em docs antigos
+    function isOwner(data) {
+      return isSignedIn() && data.userId == request.auth.uid;
+    }
+
+    // Coleções permitidas
     match /categorias/{id} {
-      allow read, write: if isSignedIn() && (
-        resource == null || resource.data.userId == request.auth.uid
-      ) && (
-        request.resource == null || request.resource.data.userId == request.auth.uid
-      );
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isOwner(resource.data);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data);
     }
     
     match /dividas_fixas/{id} {
-      allow read, write: if isSignedIn() && (
-        resource == null || resource.data.userId == request.auth.uid
-      ) && (
-        request.resource == null || request.resource.data.userId == request.auth.uid
-      );
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isOwner(resource.data);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data);
     }
     
     match /dividas_parceladas/{id} {
-      allow read, write: if isSignedIn() && (
-        resource == null || resource.data.userId == request.auth.uid
-      ) && (
-        request.resource == null || request.resource.data.userId == request.auth.uid
-      );
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isOwner(resource.data);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data);
     }
     
     match /compras_avulsas/{id} {
-      allow read, write: if isSignedIn() && (
-        resource == null || resource.data.userId == request.auth.uid
-      ) && (
-        request.resource == null || request.resource.data.userId == request.auth.uid
-      );
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isOwner(resource.data);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data);
     }
   }
 }
