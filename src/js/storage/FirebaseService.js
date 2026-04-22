@@ -87,6 +87,8 @@ export const FirebaseService = {
 
     try {
       const { id, ...data } = item;
+      if (!id) throw new Error('ID do documento não fornecido para atualização.');
+      
       const dataWithUser = { ...data, userId: user.uid };
       const docRef = doc(db, colName, id);
       await updateDoc(docRef, dataWithUser);

@@ -4,6 +4,7 @@
  */
 
 import { DashboardService } from '../services/DashboardService.js';
+import { StorageService, KEYS } from '../storage/StorageService.js';
 
 export class DashboardView {
   constructor() {
@@ -182,6 +183,7 @@ export class DashboardView {
                     <th>Cartão</th>
                     <th>Parcela</th>
                     <th>Status</th>
+                    <th class="text-right">Ação</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -196,8 +198,10 @@ export class DashboardView {
 
                     return filtered.length > 0 ? filtered.map(l => {
                       const [year, month] = (l.data ? l.data.split('-') : this.currentMonth.split('-'));
+                      const isPago = l.status === 'PAGO';
+                      
                       return `
-                      <tr>
+                      <tr style="${isPago ? 'opacity: 0.6;' : ''}">
                         <td>${year}</td>
                         <td>${month}</td>
                         <td class="font-bold">${l.descricao}</td>
@@ -207,14 +211,23 @@ export class DashboardView {
                         <td>${l.cartao || '-'}</td>
                         <td>${l.parcelaAtual ? `${l.parcelaAtual}/${l.parcelas}` : '-'}</td>
                         <td>
-                          <span class="status-indicator ${l.status === 'PAGO' ? 'status-pago' : 'status-pendente'}">
-                            ${l.status === 'PAGO' ? 'Pago' : 'Pendente'}
+                          <span class="status-indicator ${isPago ? 'status-pago' : 'status-pendente'}">
+                            ${isPago ? 'Pago' : 'Pendente'}
                           </span>
+                        </td>
+                        <td class="text-right">
+                          <button class="btn-toggle-status btn ${isPago ? 'btn-ghost' : 'btn-success'}" 
+                                  data-id="${l.id}" 
+                                  data-tipo="${l.tipo}" 
+                                  data-status="${l.status || 'PENDENTE'}"
+                                  title="${isPago ? 'Marcar como pendente' : 'Marcar como pago'}">
+                            <i data-lucide="${isPago ? 'rotate-ccw' : 'check'}" style="width: 16px; height: 16px;"></i>
+                          </button>
                         </td>
                       </tr>
                     `}).join('') : `
                       <tr>
-                        <td colspan="9" style="text-align: center; padding: 48px; color: var(--text-muted);">Nenhum lançamento corresponde aos filtros.</td>
+                        <td colspan="10" style="text-align: center; padding: 48px; color: var(--text-muted);">Nenhum lançamento corresponde aos filtros.</td>
                       </tr>
                     `;
                   })()}
@@ -249,6 +262,36 @@ export class DashboardView {
 
     ['f-year', 'f-month', 'f-categoria', 'f-pagamento', 'f-cartao', 'f-status'].forEach(id => {
       document.getElementById(id).addEventListener('change', updateView);
+    });
+
+    // Lógica para alternar status (Pago/Pendente)
+    container.querySelectorAll('.btn-toggle-status').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        const tipo = btn.getAttribute('data-tipo');
+        const currentStatus = btn.getAttribute('data-status');
+        const newStatus = currentStatus === 'PAGO' ? 'PENDENTE' : 'PAGO';
+
+        let collectionKey = '';
+        if (tipo === 'fixa') collectionKey = KEYS.DIVIDAS_FIXAS;
+        else if (tipo === 'parcelada') collectionKey = KEYS.DIVIDAS_PARCELADAS;
+        else if (tipo === 'avulsa') collectionKey = KEYS.COMPRAS_AVULSAS;
+
+        if (collectionKey) {
+          // Feedback de carregamento no botão
+          btn.innerHTML = `<div class="spinner" style="width: 14px; height: 14px; border-width: 2px;"></div>`;
+          btn.disabled = true;
+
+          try {
+            await StorageService.update(collectionKey, { id, status: newStatus });
+            await this.render(container);
+          } catch (error) {
+            alert('Erro ao atualizar status. Tente novamente.');
+            console.error(error);
+            await this.render(container);
+          }
+        }
+      });
     });
 
     // Remover o listener antigo do filter-month pois ele foi substituído
