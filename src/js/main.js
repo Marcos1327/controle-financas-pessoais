@@ -8,7 +8,7 @@ import { DashboardView } from './views/DashboardView.js';
 import { StorageView } from './views/StorageView.js';
 import { DividaParceladaView } from './views/DividaParceladaView.js';
 
-import { initAuth } from './storage/firebase.js';
+import { watchAuthState, loginWithGoogle, logout } from './storage/firebase.js';
 
 // PRD: Roteador escuta hashchange
 const routes = {
@@ -33,32 +33,46 @@ async function router() {
   await view.render(contentContainer);
 }
 
-window.addEventListener('hashchange', router);
-window.addEventListener('load', async () => {
-  try {
-    // Inicializa Firebase de forma anônima antes de renderizar qualquer coisa
-    const user = await initAuth();
-    
-    if (!user) {
-      console.log("Sistema iniciado em modo limitado (sem banco de dados ativo).");
-    }
-
-    // Migração automática (opcional)
-    const hasLocalData = localStorage.getItem('fp_categorias') || localStorage.getItem('fp_dividas_fixas');
-    if (hasLocalData) {
-      console.log("Detectados dados locais. Use 'Importar JSON' para subir para a nuvem.");
-    }
-
-    router();
-  } catch (error) {
-    console.error("Erro crítico na inicialização", error);
-    const appContainer = document.getElementById('app');
-    appContainer.innerHTML = `<div style="padding: 20px; text-align: center; height: 100vh; display: flex; align-items: center; justify-content: center;">
-      <div>
-        <h2 style="color: #64748b;">Aguardando Configuração</h2>
-        <p style="color: #94a3b8; max-width: 400px; margin: 10px auto;">O Firebase não pôde ser inicializado. Certifique-se de que o <b>Login Anônimo</b> está ativado no Console do Firebase.</p>
-        <button onclick="window.location.reload()" class="btn btn-primary" style="margin-top: 20px;">Tentar Novamente</button>
+const showLoginPage = () => {
+  const appContainer = document.getElementById('app');
+  appContainer.innerHTML = `
+    <div style="height: 100vh; display: flex; align-items: center; justify-content: center; background: #f8fafc;">
+      <div class="card" style="width: 100%; max-width: 400px; text-align: center; padding: 48px;">
+        <div class="logo-box" style="width: 64px; height: 64px; font-size: 32px; margin: 0 auto 24px;">F</div>
+        <h1 style="font-size: 24px; font-weight: 800; color: #1e293b; margin-bottom: 8px;">Finanças Pro</h1>
+        <p style="color: #64748b; margin-bottom: 32px;">Seu controle financeiro pessoal simplificado e seguro.</p>
+        
+        <button id="btn-login" class="btn btn-primary" style="width: 100%; justify-content: center; height: 48px; font-size: 16px;">
+          Entrar com Google
+        </button>
+        
+        <div style="margin-top: 24px; font-size: 12px; color: #94a3b8;">
+          Seus dados são protegidos pela criptografia do Google.
+        </div>
       </div>
-    </div>`;
-  }
+    </div>
+  `;
+  
+  document.getElementById('btn-login').addEventListener('click', async () => {
+    try {
+      await loginWithGoogle();
+    } catch (e) {
+      alert('Erro ao fazer login: ' + e.message);
+    }
+  });
+};
+
+window.addEventListener('hashchange', () => {
+  if (window.currentUser) router();
+});
+
+window.addEventListener('load', () => {
+  watchAuthState((user) => {
+    window.currentUser = user;
+    if (user) {
+      router();
+    } else {
+      showLoginPage();
+    }
+  });
 });

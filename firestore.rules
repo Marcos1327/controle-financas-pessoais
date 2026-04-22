@@ -11,25 +11,38 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Regras para as coleções
-    // Como o usuário não quer login manual, permitimos que qualquer usuário autenticado (anônimo)
-    // leia e escreva. Para segurança em produção, o ideal seria vincular ao UID.
-    // Mas para simplificar conforme pedido, permitiremos acesso se estiver "logado" anonimamente.
+    // Regras para as coleções: Só pode ler/escrever se o userId do documento bater com o auth.uid
     
     match /categorias/{id} {
-      allow read, write: if isSignedIn();
+      allow read, write: if isSignedIn() && (
+        resource == null || resource.data.userId == request.auth.uid
+      ) && (
+        request.resource == null || request.resource.data.userId == request.auth.uid
+      );
     }
     
     match /dividas_fixas/{id} {
-      allow read, write: if isSignedIn();
+      allow read, write: if isSignedIn() && (
+        resource == null || resource.data.userId == request.auth.uid
+      ) && (
+        request.resource == null || request.resource.data.userId == request.auth.uid
+      );
     }
     
     match /dividas_parceladas/{id} {
-      allow read, write: if isSignedIn();
+      allow read, write: if isSignedIn() && (
+        resource == null || resource.data.userId == request.auth.uid
+      ) && (
+        request.resource == null || request.resource.data.userId == request.auth.uid
+      );
     }
     
     match /compras_avulsas/{id} {
-      allow read, write: if isSignedIn();
+      allow read, write: if isSignedIn() && (
+        resource == null || resource.data.userId == request.auth.uid
+      ) && (
+        request.resource == null || request.resource.data.userId == request.auth.uid
+      );
     }
   }
 }

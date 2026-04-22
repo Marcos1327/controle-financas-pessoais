@@ -9,7 +9,7 @@ import {
   query,
   where
 } from 'firebase/firestore';
-import { db } from './firebase.js';
+import { db, auth } from './firebase.js';
 
 // Mapeamento das chaves do localStorage para coleções do Firestore
 const COLLECTION_MAP = {
@@ -21,17 +21,19 @@ const COLLECTION_MAP = {
 
 export const FirebaseService = {
   /**
-   * Retorna todos os itens de uma coleção
+   * Retorna todos os itens de uma coleção FILTRADOS POR USUÁRIO
    */
   getAll: async (storageKey) => {
     const colName = COLLECTION_MAP[storageKey];
-    if (!colName) return [];
+    const user = auth.currentUser;
+    if (!colName || !user) return [];
 
     try {
-      const querySnapshot = await getDocs(collection(db, colName));
+      const q = query(collection(db, colName), where("userId", "==", user.uid));
+      const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map(doc => ({ 
         ...doc.data(), 
-        id: doc.id // Usamos o ID do Firebase
+        id: doc.id 
       }));
     } catch (e) {
       console.error(`Erro ao ler coleção ${colName}`, e);
@@ -40,19 +42,21 @@ export const FirebaseService = {
   },
 
   /**
-   * Adiciona um item
+   * Adiciona um item com o ID do usuário
    */
   add: async (storageKey, item) => {
     const colName = COLLECTION_MAP[storageKey];
-    if (!colName) return;
+    const user = auth.currentUser;
+    if (!colName || !user) return;
 
     try {
       const { id, ...data } = item;
-      // Se já tiver ID (vindo de importação por exemplo), usamos ele
+      const dataWithUser = { ...data, userId: user.uid };
+      
       if (id) {
-        await setDoc(doc(db, colName, id), data);
+        await setDoc(doc(db, colName, id), dataWithUser);
       } else {
-        await addDoc(collection(db, colName), data);
+        await addDoc(collection(db, colName), dataWithUser);
       }
     } catch (e) {
       console.error(`Erro ao adicionar em ${colName}`, e);

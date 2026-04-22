@@ -5,8 +5,10 @@
 
 import { createIcons, icons } from 'lucide';
 import { StorageService } from '../storage/StorageService.js';
+import { logout, auth } from '../storage/firebase.js';
 
 export function Sidebar(activeRoute) {
+  const user = auth.currentUser;
   const menuItems = [
     { id: 'dashboard', label: 'Visão Geral', hash: '#/', icon: 'layout-dashboard' },
     { id: 'fixas', label: 'Dívidas Fixas', hash: '#/dividas-fixas', icon: 'calendar' },
@@ -44,12 +46,18 @@ export function Sidebar(activeRoute) {
         </label>
       </div>
 
-      <div class="user-profile">
-        <div class="user-avatar">GS</div>
-        <div style="overflow: hidden;">
-          <p style="font-size: 12px; font-weight: 600; color: white; margin: 0;">Giovany Silva</p>
-          <p style="font-size: 10px; color: #64748b; margin: 0;">Premium Member</p>
+      <div class="user-profile" style="flex-direction: column; align-items: flex-start; gap: 12px; padding: 20px;">
+        <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+          ${user?.photoURL ? `<img src="${user.photoURL}" style="width: 32px; height: 32px; border-radius: 50%;">` : `<div class="user-avatar">${user?.displayName?.charAt(0) || 'U'}</div>`}
+          <div style="overflow: hidden; flex: 1;">
+            <p style="font-size: 12px; font-weight: 600; color: white; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${user?.displayName || 'Usuário'}</p>
+            <p style="font-size: 10px; color: #64748b; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${user?.email}</p>
+          </div>
         </div>
+        <button id="btn-logout" class="btn btn-ghost" style="width: 100%; justify-content: flex-start; padding: 8px; color: #f87171; font-size: 11px;">
+           <i data-lucide="log-out" style="width: 14px; height: 14px; margin-right: 8px;"></i>
+           Sair da conta
+        </button>
       </div>
     </aside>
   `;
@@ -58,6 +66,13 @@ export function Sidebar(activeRoute) {
   setTimeout(() => {
     createIcons({ icons });
     
+    document.getElementById('btn-logout')?.addEventListener('click', async () => {
+      if (confirm('Deseja sair do sistema?')) {
+        await logout();
+        window.location.reload();
+      }
+    });
+
     document.getElementById('btn-export')?.addEventListener('click', async () => {
       await StorageService.exportData();
     });
