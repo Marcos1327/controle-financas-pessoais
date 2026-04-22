@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { FirebaseService } from './FirebaseService.js';
+
 // Chaves utilizadas no localStorage conforme definido no PRD
 export const KEYS = {
   CATEGORIAS: 'fp_categorias',
@@ -17,58 +19,39 @@ export const StorageService = {
   /**
    * Retorna todos os itens de uma coleção
    */
-  getAll: (key) => {
-    try {
-      const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : [];
-    } catch (e) {
-      console.error(`Erro ao ler ${key} do localStorage`, e);
-      return [];
-    }
-  },
-
-  /**
-   * Salva uma coleção inteira
-   */
-  save: (key, data) => {
-    localStorage.setItem(key, JSON.stringify(data));
+  getAll: async (key) => {
+    return await FirebaseService.getAll(key);
   },
 
   /**
    * Adiciona um item a uma coleção
    */
-  add: (key, item) => {
-    const items = StorageService.getAll(key);
-    items.push(item);
-    StorageService.save(key, items);
+  add: async (key, item) => {
+    await FirebaseService.add(key, item);
   },
 
   /**
    * Remove um item pelo ID
    */
-  remove: (key, id) => {
-    const items = StorageService.getAll(key).filter(i => i.id !== id);
-    StorageService.save(key, items);
+  remove: async (key, id) => {
+    await FirebaseService.remove(key, id);
   },
 
   /**
    * Atualiza um item
    */
-  update: (key, updatedItem) => {
-    const items = StorageService.getAll(key).map(i => 
-      i.id === updatedItem.id ? updatedItem : i
-    );
-    StorageService.save(key, items);
+  update: async (key, updatedItem) => {
+    await FirebaseService.update(key, updatedItem);
   },
 
   /**
    * EXPORTAÇÃO: Gera um arquivo JSON com todos os dados do sistema
    */
-  exportData: () => {
+  exportData: async () => {
     const backup = {};
-    Object.values(KEYS).forEach(key => {
-      backup[key] = StorageService.getAll(key);
-    });
+    for (const key of Object.values(KEYS)) {
+      backup[key] = await StorageService.getAll(key);
+    }
     
     const dataStr = JSON.stringify(backup, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
@@ -82,16 +65,19 @@ export const StorageService = {
   },
 
   /**
-   * IMPORTAÇÃO: Carrega dados de um arquivo JSON
+   * IMPORTAÇÃO: Carrega dados de um arquivo JSON para o Firebase
    */
-  importData: (jsonData) => {
+  importData: async (jsonData) => {
     try {
       const data = JSON.parse(jsonData);
-      Object.entries(data).forEach(([key, value]) => {
+      for (const [key, value] of Object.entries(data)) {
         if (Object.values(KEYS).includes(key) && Array.isArray(value)) {
-          StorageService.save(key, value);
+          // Para cada item no JSON, adicionamos ao Firebase
+          for (const item of value) {
+            await StorageService.add(key, item);
+          }
         }
-      });
+      }
       return true;
     } catch (e) {
       console.error('Erro ao importar JSON', e);

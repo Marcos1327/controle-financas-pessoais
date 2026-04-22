@@ -8,6 +8,8 @@ import { DashboardView } from './views/DashboardView.js';
 import { StorageView } from './views/StorageView.js';
 import { DividaParceladaView } from './views/DividaParceladaView.js';
 
+import { initAuth } from './storage/firebase.js';
+
 // PRD: Roteador escuta hashchange
 const routes = {
   '#/': () => new DashboardView(),
@@ -17,7 +19,7 @@ const routes = {
   '#/categorias': () => new StorageView('CATEGORIAS', 'Categorias'),
 };
 
-function router() {
+async function router() {
   const appContainer = document.getElementById('app');
   const hash = window.location.hash || '#/';
   
@@ -28,12 +30,35 @@ function router() {
   const viewFactory = routes[hash] || routes['#/'];
   
   const view = viewFactory();
-  view.render(contentContainer);
+  await view.render(contentContainer);
 }
 
 window.addEventListener('hashchange', router);
-window.addEventListener('load', () => {
-  // Inicialização do sistema conforme PRD: se não tiver nada, criamos mocks ou categorias básicas
-  // mas aqui respeitaremos o desejo de usar JSON backup
-  router();
+window.addEventListener('load', async () => {
+  try {
+    // Inicializa Firebase de forma anônima antes de renderizar qualquer coisa
+    const user = await initAuth();
+    
+    if (!user) {
+      console.log("Sistema iniciado em modo limitado (sem banco de dados ativo).");
+    }
+
+    // Migração automática (opcional)
+    const hasLocalData = localStorage.getItem('fp_categorias') || localStorage.getItem('fp_dividas_fixas');
+    if (hasLocalData) {
+      console.log("Detectados dados locais. Use 'Importar JSON' para subir para a nuvem.");
+    }
+
+    router();
+  } catch (error) {
+    console.error("Erro crítico na inicialização", error);
+    const appContainer = document.getElementById('app');
+    appContainer.innerHTML = `<div style="padding: 20px; text-align: center; height: 100vh; display: flex; align-items: center; justify-content: center;">
+      <div>
+        <h2 style="color: #64748b;">Aguardando Configuração</h2>
+        <p style="color: #94a3b8; max-width: 400px; margin: 10px auto;">O Firebase não pôde ser inicializado. Certifique-se de que o <b>Login Anônimo</b> está ativado no Console do Firebase.</p>
+        <button onclick="window.location.reload()" class="btn btn-primary" style="margin-top: 20px;">Tentar Novamente</button>
+      </div>
+    </div>`;
+  }
 });

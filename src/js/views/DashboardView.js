@@ -10,8 +10,13 @@ export class DashboardView {
     this.currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
   }
 
-  render(container) {
-    const summary = DashboardService.getMonthlySummary(this.currentMonth);
+  async render(container) {
+    // Estado de carregamento
+    if (!container.innerHTML.includes('main-content')) {
+      container.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 80vh; color: var(--text-muted);">Carregando dados...</div>`;
+    }
+
+    const summary = await DashboardService.getMonthlySummary(this.currentMonth);
 
     container.innerHTML = `
       <div class="main-content">
@@ -99,9 +104,9 @@ export class DashboardView {
     });
 
     // Listeners
-    document.getElementById('filter-month').addEventListener('change', (e) => {
+    document.getElementById('filter-month').addEventListener('change', async (e) => {
       this.currentMonth = e.target.value;
-      this.render(container);
+      await this.render(container);
     });
   }
 }

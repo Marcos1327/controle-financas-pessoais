@@ -1,0 +1,72 @@
+{
+  "entities": {
+    "Categoria": {
+      "title": "Categoria",
+      "description": "Categorias de gastos",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nome": { "type": "string" }
+      },
+      "required": ["id", "nome"]
+    },
+    "DividaFixa": {
+      "title": "Dívida Fixa",
+      "description": "Gastos recorrentes mensais",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "descricao": { "type": "string" },
+        "valor": { "type": "number" },
+        "vencimento": { "type": "string" }
+      },
+      "required": ["id", "descricao", "valor"]
+    },
+    "DividaParcelada": {
+      "title": "Dívida Parcelada",
+      "description": "Compras parceladas",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "descricao": { "type": "string" },
+        "valorTotal": { "type": "number" },
+        "parcelasTotal": { "type": "number" },
+        "parcelaAtual": { "type": "number" },
+        "valorMensal": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "descricao", "valorTotal", "parcelasTotal"]
+    },
+    "CompraAvulsa": {
+      "title": "Compra Avulsa",
+      "description": "Gastos eventuais no mês",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "descricao": { "type": "string" },
+        "valor": { "type": "number" },
+        "data": { "type": "string" }
+      },
+      "required": ["id", "descricao", "valor", "data"]
+    }
+  },
+  "firestore": {
+    "categorias": {
+      "schema": "Categoria",
+      "description": "Coleção de categorias"
+    },
+    "dividas_fixas": {
+      "schema": "DividaFixa",
+      "description": "Coleção de dívidas fixas"
+    },
+    "dividas_parceladas": {
+      "schema": "DividaParcelada",
+      "description": "Coleção de dívidas parceladas"
+    },
+    "compras_avulsas": {
+      "schema": "CompraAvulsa",
+      "description": "Coleção de compras avulsas"
+    }
+  }
+}

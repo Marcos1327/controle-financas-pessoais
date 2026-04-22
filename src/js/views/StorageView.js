@@ -12,8 +12,11 @@ export class StorageView {
     this.collectionKey = KEYS[keyName];
   }
 
-  render(container) {
-    const items = StorageService.getAll(this.collectionKey);
+  async render(container) {
+    if (!container.innerHTML.includes('main-content')) {
+      container.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 80vh; color: var(--text-muted);">Carregando dados...</div>`;
+    }
+    const items = await StorageService.getAll(this.collectionKey);
 
     container.innerHTML = `
       <div class="main-content">
@@ -122,7 +125,7 @@ export class StorageView {
       form.reset();
     });
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(form);
       const newItem = {
@@ -135,18 +138,18 @@ export class StorageView {
         status: 'ATIVO'
       };
 
-      StorageService.add(this.collectionKey, newItem);
+      await StorageService.add(this.collectionKey, newItem);
       modal.classList.remove('active');
       form.reset();
-      this.render(container);
+      await this.render(container);
     });
 
     container.querySelectorAll('.btn-delete').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         const id = btn.getAttribute('data-id');
         if (confirm('Deseja realmente excluir este registro?')) {
-          StorageService.remove(this.collectionKey, id);
-          this.render(container);
+          await StorageService.remove(this.collectionKey, id);
+          await this.render(container);
         }
       });
     });

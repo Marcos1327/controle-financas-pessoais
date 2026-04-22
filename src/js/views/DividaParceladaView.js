@@ -7,8 +7,11 @@ import { StorageService, KEYS } from '../storage/StorageService.js';
 import { createIcons, Plus, Trash2, CheckCircle } from 'lucide';
 
 export class DividaParceladaView {
-  render(container) {
-    const items = StorageService.getAll(KEYS.DIVIDAS_PARCELADAS);
+  async render(container) {
+    if (!container.innerHTML.includes('main-content')) {
+      container.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 80vh; color: var(--text-muted);">Carregando dados...</div>`;
+    }
+    const items = await StorageService.getAll(KEYS.DIVIDAS_PARCELADAS);
 
     container.innerHTML = `
       <div class="main-content">
@@ -100,7 +103,7 @@ export class DividaParceladaView {
       form.reset();
     });
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(form);
       const custoTotal = Number(fd.get('custoTotal'));
@@ -116,16 +119,16 @@ export class DividaParceladaView {
         status: 'ATIVO'
       };
 
-      StorageService.add(KEYS.DIVIDAS_PARCELADAS, newItem);
+      await StorageService.add(KEYS.DIVIDAS_PARCELADAS, newItem);
       modal.classList.remove('active');
       form.reset();
-      this.render(container);
+      await this.render(container);
     });
 
     container.querySelectorAll('.btn-increment').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-id');
-        const items = StorageService.getAll(KEYS.DIVIDAS_PARCELADAS);
+        const items = await StorageService.getAll(KEYS.DIVIDAS_PARCELADAS);
         const item = items.find(i => i.id === id);
         
         if (item) {
@@ -134,17 +137,17 @@ export class DividaParceladaView {
             item.status = 'FINALIZADO';
             item.parcelaAtual = item.parcelas;
           }
-          StorageService.update(KEYS.DIVIDAS_PARCELADAS, item);
-          this.render(container);
+          await StorageService.update(KEYS.DIVIDAS_PARCELADAS, item);
+          await this.render(container);
         }
       });
     });
 
     container.querySelectorAll('.btn-delete').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         if (confirm('Excluir?')) {
-          StorageService.remove(KEYS.DIVIDAS_PARCELADAS, btn.getAttribute('data-id'));
-          this.render(container);
+          await StorageService.remove(KEYS.DIVIDAS_PARCELADAS, btn.getAttribute('data-id'));
+          await this.render(container);
         }
       });
     });

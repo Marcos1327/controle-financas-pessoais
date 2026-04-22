@@ -10,12 +10,12 @@ export const DashboardService = {
    * Calcula o resumo financeiro para um mês/ano específico
    * @param {string} monthYear - Formato "YYYY-MM"
    */
-  getMonthlySummary: (monthYear) => {
+  getMonthlySummary: async (monthYear) => {
     const [year, month] = monthYear.split('-').map(Number);
     
-    const fixas = StorageService.getAll(KEYS.DIVIDAS_FIXAS);
-    const parceladas = StorageService.getAll(KEYS.DIVIDAS_PARCELADAS);
-    const avulsas = StorageService.getAll(KEYS.COMPRAS_AVULSAS);
+    const fixas = await StorageService.getAll(KEYS.DIVIDAS_FIXAS);
+    const parceladas = await StorageService.getAll(KEYS.DIVIDAS_PARCELADAS);
+    const avulsas = await StorageService.getAll(KEYS.COMPRAS_AVULSAS);
 
     // Dívidas Fixas: Sempre incluídas
     const totalFixas = fixas.reduce((acc, current) => acc + Number(current.valorMensal), 0);

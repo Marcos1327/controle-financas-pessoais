@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Bloqueio total por padrão
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Função auxiliar para verificar se está autenticado (mesmo que anonimamente)
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Regras para as coleções
+    // Como o usuário não quer login manual, permitimos que qualquer usuário autenticado (anônimo)
+    // leia e escreva. Para segurança em produção, o ideal seria vincular ao UID.
+    // Mas para simplificar conforme pedido, permitiremos acesso se estiver "logado" anonimamente.
+    
+    match /categorias/{id} {
+      allow read, write: if isSignedIn();
+    }
+    
+    match /dividas_fixas/{id} {
+      allow read, write: if isSignedIn();
+    }
+    
+    match /dividas_parceladas/{id} {
+      allow read, write: if isSignedIn();
+    }
+    
+    match /compras_avulsas/{id} {
+      allow read, write: if isSignedIn();
+    }
+  }
+}

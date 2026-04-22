@@ -58,21 +58,27 @@ export function Sidebar(activeRoute) {
   setTimeout(() => {
     createIcons({ icons });
     
-    document.getElementById('btn-export')?.addEventListener('click', () => {
-      StorageService.exportData();
+    document.getElementById('btn-export')?.addEventListener('click', async () => {
+      await StorageService.exportData();
     });
 
     document.getElementById('input-import')?.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = (event) => {
-        const success = StorageService.importData(event.target.result);
+      reader.onload = async (event) => {
+        const btnText = document.querySelector('#input-import').parentElement;
+        const originalHtml = btnText.innerHTML;
+        btnText.innerHTML = 'Importando...';
+
+        const success = await StorageService.importData(event.target.result);
+        
         if (success) {
-          alert('Dados importados com sucesso!');
+          alert('Dados importados com sucesso para o banco de dados!');
           window.location.reload();
         } else {
           alert('Erro ao importar arquivo.');
+          btnText.innerHTML = originalHtml;
         }
       };
       reader.readAsText(file);
