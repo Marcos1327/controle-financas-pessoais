@@ -11,38 +11,17 @@ service cloud.firestore {
     }
 
     // Helper para verificar se o documento pertence ao usuário
-    // Usamos has('userId') para evitar erros se o campo não existir em docs antigos
-    function isOwner(data) {
-      return isSignedIn() && data.userId == request.auth.uid;
+    // O checking resource.data.userId == request.auth.uid é o que permite o 'list' com query filtrada
+    function isOwner() {
+      return isSignedIn() && resource.data.userId == request.auth.uid;
     }
 
-    // Coleções permitidas
-    match /categorias/{id} {
+    // Regras unificadas para todas as coleções financeiras
+    match /{collection}/{id} {
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow get: if isOwner(resource.data);
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isOwner(resource.data);
-    }
-    
-    match /dividas_fixas/{id} {
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow get: if isOwner(resource.data);
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isOwner(resource.data);
-    }
-    
-    match /dividas_parceladas/{id} {
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow get: if isOwner(resource.data);
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isOwner(resource.data);
-    }
-    
-    match /compras_avulsas/{id} {
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow get: if isOwner(resource.data);
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isOwner(resource.data);
+      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
   }
 }

@@ -78,16 +78,18 @@ export const FirebaseService = {
   },
 
   /**
-   * Atualiza um item
+   * Atualiza um item garantindo que o userId seja mantido
    */
   update: async (storageKey, item) => {
     const colName = COLLECTION_MAP[storageKey];
-    if (!colName) return;
+    const user = auth.currentUser;
+    if (!colName || !user) return;
 
     try {
       const { id, ...data } = item;
+      const dataWithUser = { ...data, userId: user.uid };
       const docRef = doc(db, colName, id);
-      await updateDoc(docRef, data);
+      await updateDoc(docRef, dataWithUser);
     } catch (e) {
       console.error(`Erro ao atualizar em ${colName}`, e);
     }
