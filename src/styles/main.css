@@ -55,6 +55,76 @@ body {
   flex-direction: column;
   flex-shrink: 0;
   border-right: 1px solid #1e293b;
+  z-index: 50;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.collapsed {
+  width: 70px;
+}
+
+.sidebar.collapsed .sidebar-logo-container {
+  display: none !important;
+}
+
+.sidebar.collapsed .sidebar-header {
+  justify-content: center !important;
+  padding: 24px 0;
+}
+
+.sidebar.collapsed .profile-arrow {
+  display: none !important;
+}
+
+.sidebar.collapsed #btn-logout {
+  display: none !important;
+}
+
+.sidebar.collapsed .sidebar-header h1,
+.sidebar.collapsed .sidebar-link span,
+.sidebar.collapsed .sidebar-footer,
+.sidebar.collapsed .user-profile p,
+.sidebar.collapsed .sidebar-section-title {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-link {
+  justify-content: center;
+  padding: 12px;
+}
+
+.sidebar.collapsed .sidebar-nav {
+  padding: 0 10px;
+}
+
+.sidebar.collapsed .user-profile {
+  justify-content: center;
+  padding: 16px 0;
+}
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 40;
+  display: none;
+  backdrop-filter: blur(2px);
+}
+
+.sidebar-overlay.active {
+  display: block;
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    position: fixed;
+    height: 100vh;
+    transform: translateX(-100%);
+    width: 260px !important; /* Force width on mobile */
+  }
+  .sidebar.active {
+    transform: translateX(0);
+  }
 }
 
 .sidebar-header {

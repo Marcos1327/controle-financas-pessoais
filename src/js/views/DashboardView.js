@@ -56,12 +56,23 @@ export class DashboardView {
           border-radius: 12px;
           margin-bottom: 24px;
           border: 1px solid var(--border-color);
+          transition: all 0.3s ease;
+        }
+        .filter-bar.hidden-mobile {
+          display: none;
         }
         .filter-group {
           display: flex;
           flex-direction: column;
           gap: 4px;
           flex: 1 1 150px;
+        }
+
+        /* Mobile specific controls */
+        .mobile-controls {
+          display: none;
+          gap: 8px;
+          margin-bottom: 16px;
         }
         .filter-group label {
           font-size: 11px;
@@ -126,6 +137,15 @@ export class DashboardView {
 
         /* Responsividade */
         @media (max-width: 768px) {
+          .mobile-controls {
+            display: flex;
+          }
+          .filter-bar {
+            display: none !important; /* Escondido por padrão no mobile */
+          }
+          .filter-bar.active {
+            display: flex !important;
+          }
           .grid-stats {
             grid-template-columns: 1fr 1fr;
             gap: 12px;
@@ -143,10 +163,26 @@ export class DashboardView {
             flex: 1 1 45%;
           }
           .page-header {
-            padding: 16px;
+            padding: 0 16px;
+            height: 56px;
           }
           .content-padding {
-            padding: 0 16px;
+            padding: 16px;
+          }
+          .breadcrumb { font-size: 10px; }
+          #btn-toggle-sidebar {
+            display: flex !important;
+          }
+          #btn-toggle-stats-mobile {
+            display: flex !important;
+          }
+          #secondary-stats {
+            display: none !important;
+          }
+          #secondary-stats.active {
+            display: flex !important;
+            flex-direction: column;
+            grid-column: 1 / -1;
           }
         }
 
@@ -161,13 +197,25 @@ export class DashboardView {
       </style>
       <div class="main-content">
         <header class="page-header">
-          <div class="breadcrumb">
-            Visão Geral / <span style="color: var(--text-main);">Mensal</span>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <button id="btn-toggle-sidebar" class="btn btn-ghost" style="padding: 8px; display: none;">
+              <i data-lucide="menu" style="width: 20px; height: 20px;"></i>
+            </button>
+            <div class="breadcrumb">
+              Visão Geral / <span style="color: var(--text-main);">Mensal</span>
+            </div>
           </div>
         </header>
 
         <div class="content-padding">
-          <div class="filter-bar">
+          <div class="mobile-controls">
+            <button id="btn-toggle-filters" class="btn btn-primary" style="flex: 1; justify-content: center;">
+              <i data-lucide="filter" style="width: 16px; height: 16px;"></i>
+              Filtros
+            </button>
+          </div>
+
+          <div id="filter-bar" class="filter-bar">
             <div class="filter-group">
               <label>Ano</label>
               <select id="f-year">
@@ -215,33 +263,40 @@ export class DashboardView {
           </div>
 
           <div class="grid-stats">
-            <div class="card">
+            <div class="card" style="position: relative;">
               <p class="card-title">Gasto Total</p>
               <p class="card-value">R$ ${summary.totalGeral.toFixed(2)}</p>
               <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Soma de todos os itens</p>
+              
+              <!-- Mobile only toggle for details -->
+              <button id="btn-toggle-stats-mobile" class="btn btn-ghost" style="display: none; position: absolute; top: 16px; right: 16px; padding: 4px;">
+                <i data-lucide="eye" style="width: 18px; height: 18px;"></i>
+              </button>
             </div>
 
-            <div class="card">
-              <p class="card-title">Dívidas Fixas</p>
-              <p class="card-value" style="color: var(--primary);">R$ ${summary.totalFixas.toFixed(2)}</p>
-              <div class="progress-container">
-                <div class="progress-bar" style="background: var(--primary); width: ${Math.min((summary.totalFixas / summary.totalGeral) * 100 || 0, 100)}%"></div>
+            <div id="secondary-stats" class="secondary-stats-container" style="display: contents;">
+              <div class="card">
+                <p class="card-title">Dívidas Fixas</p>
+                <p class="card-value" style="color: var(--primary);">R$ ${summary.totalFixas.toFixed(2)}</p>
+                <div class="progress-container">
+                  <div class="progress-bar" style="background: var(--primary); width: ${Math.min((summary.totalFixas / summary.totalGeral) * 100 || 0, 100)}%"></div>
+                </div>
               </div>
-            </div>
 
-            <div class="card">
-              <p class="card-title">Parcelamentos</p>
-              <p class="card-value" style="color: var(--warning);">R$ ${summary.totalParceladas.toFixed(2)}</p>
-              <div class="progress-container">
-                <div class="progress-bar" style="background: var(--warning); width: ${Math.min((summary.totalParceladas / summary.totalGeral) * 100 || 0, 100)}%"></div>
+              <div class="card">
+                <p class="card-title">Parcelamentos</p>
+                <p class="card-value" style="color: var(--warning);">R$ ${summary.totalParceladas.toFixed(2)}</p>
+                <div class="progress-container">
+                  <div class="progress-bar" style="background: var(--warning); width: ${Math.min((summary.totalParceladas / summary.totalGeral) * 100 || 0, 100)}%"></div>
+                </div>
               </div>
-            </div>
 
-            <div class="card">
-              <p class="card-title">Avulsas</p>
-              <p class="card-value" style="color: var(--success);">R$ ${summary.totalAvulsas.toFixed(2)}</p>
-              <div class="progress-container">
-                <div class="progress-bar" style="background: var(--success); width: ${Math.min((summary.totalAvulsas / summary.totalGeral) * 100 || 0, 100)}%"></div>
+              <div class="card">
+                <p class="card-title">Avulsas</p>
+                <p class="card-value" style="color: var(--success);">R$ ${summary.totalAvulsas.toFixed(2)}</p>
+                <div class="progress-container">
+                  <div class="progress-bar" style="background: var(--success); width: ${Math.min((summary.totalAvulsas / summary.totalGeral) * 100 || 0, 100)}%"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -412,6 +467,31 @@ export class DashboardView {
         import('lucide').then(lucide => {
           lucide.createIcons({ icons: lucide.icons });
         });
+      });
+    });
+
+    // Toggle Sidebar Mobile
+    document.getElementById('btn-toggle-sidebar')?.addEventListener('click', () => {
+      document.querySelector('.sidebar').classList.add('active');
+      document.getElementById('sidebar-overlay').classList.add('active');
+    });
+
+    // Toggle Filtros Mobile
+    document.getElementById('btn-toggle-filters')?.addEventListener('click', () => {
+      document.getElementById('filter-bar').classList.toggle('active');
+    });
+
+    // Toggle Stats Mobile
+    document.getElementById('btn-toggle-stats-mobile')?.addEventListener('click', () => {
+      const container = document.getElementById('secondary-stats');
+      const btn = document.getElementById('btn-toggle-stats-mobile');
+      container.classList.toggle('active');
+      
+      const isActive = container.classList.contains('active');
+      btn.innerHTML = `<i data-lucide="${isActive ? 'eye-off' : 'eye'}" style="width: 18px; height: 18px;"></i>`;
+      
+      import('lucide').then(lucide => {
+        lucide.createIcons({ icons: lucide.icons });
       });
     });
 

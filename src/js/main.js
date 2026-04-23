@@ -24,9 +24,19 @@ async function router() {
   const hash = window.location.hash || '#/';
   
   // Limpar e reconstruir estrutura se necessário
-  appContainer.innerHTML = Sidebar(hash) + `<main id="page-content" class="main-content"></main>`;
+  appContainer.innerHTML = Sidebar(hash) + 
+    `<div id="sidebar-overlay" class="sidebar-overlay"></div>` +
+    `<main id="page-content" class="main-content"></main>`;
   
   const contentContainer = document.getElementById('page-content');
+  const overlay = document.getElementById('sidebar-overlay');
+  
+  // Fechar sidebar ao clicar no overlay
+  overlay.addEventListener('click', () => {
+    document.querySelector('.sidebar').classList.remove('active');
+    overlay.classList.remove('active');
+  });
+
   const viewFactory = routes[hash] || routes['#/'];
   
   const view = viewFactory();
