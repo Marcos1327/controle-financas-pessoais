@@ -33,6 +33,7 @@ export class DashboardView {
           font-size: 11px;
           font-weight: 700;
           text-transform: uppercase;
+          display: inline-block;
         }
         .status-pago {
           background: #dcfce7;
@@ -60,6 +61,7 @@ export class DashboardView {
           display: flex;
           flex-direction: column;
           gap: 4px;
+          flex: 1 1 150px;
         }
         .filter-group label {
           font-size: 11px;
@@ -75,16 +77,92 @@ export class DashboardView {
           border-radius: 6px;
           font-size: 13px;
           outline: none;
+          width: 100%;
+        }
+
+        /* Mobile Transactions CSS */
+        .mobile-list {
+          display: none;
+          flex-direction: column;
+          gap: 12px;
+          padding-bottom: 20px;
+        }
+        .transaction-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          transition: all 0.2s;
+        }
+        .card-header-main {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+        }
+        .card-details {
+          display: none;
+          padding-top: 12px;
+          border-top: 1px dashed var(--border-color);
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          font-size: 12px;
+        }
+        .card-details.active {
+          display: grid;
+        }
+        .detail-item label {
+          display: block;
+          color: var(--text-muted);
+          font-size: 10px;
+          text-transform: uppercase;
+          margin-bottom: 2px;
+        }
+        .detail-item span {
+          font-weight: 600;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+          .grid-stats {
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+          }
+          .filter-bar {
+            gap: 12px;
+          }
+          .desktop-only {
+            display: none !important;
+          }
+          .mobile-list {
+            display: flex;
+          }
+          .filter-group {
+            flex: 1 1 45%;
+          }
+          .page-header {
+            padding: 16px;
+          }
+          .content-padding {
+            padding: 0 16px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .grid-stats {
+            grid-template-columns: 1fr;
+          }
+          .filter-group {
+            flex: 1 1 100%;
+          }
         }
       </style>
       <div class="main-content">
         <header class="page-header">
           <div class="breadcrumb">
             Visão Geral / <span style="color: var(--text-main);">Mensal</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <i data-lucide="calendar" style="width: 16px; height: 16px; color: var(--text-muted);"></i>
-            <input type="month" id="filter-month" value="${this.currentMonth}" style="border: none; background: transparent; font-weight: 700; cursor: pointer; outline: none;">
           </div>
         </header>
 
@@ -170,7 +248,8 @@ export class DashboardView {
 
           <section class="table-container">
             <div class="table-header">Transações do Mês</div>
-            <div style="overflow-x: auto;">
+            
+            <div class="desktop-only" style="overflow-x: auto;">
               <table>
                 <thead>
                   <tr>
@@ -234,6 +313,76 @@ export class DashboardView {
                 </tbody>
               </table>
             </div>
+
+            <!-- Mobile View -->
+            <div class="mobile-list">
+              ${(() => {
+                const filtered = summary.lancamentos.filter(l => {
+                  if (this.filters.categoria !== 'all' && l.categoria !== this.filters.categoria) return false;
+                  if (this.filters.formaPagamento !== 'all' && l.formaPagamento !== this.filters.formaPagamento) return false;
+                  if (this.filters.cartao !== 'all' && l.cartao !== this.filters.cartao) return false;
+                  if (this.filters.status !== 'all' && (l.status || 'PENDENTE') !== this.filters.status) return false;
+                  return true;
+                });
+
+                return filtered.length > 0 ? filtered.map(l => {
+                  const isPago = l.status === 'PAGO';
+                  const [year, month] = (l.data ? l.data.split('-') : this.currentMonth.split('-'));
+                  
+                  return `
+                  <div class="transaction-card" style="${isPago ? 'opacity: 0.7;' : ''}" data-id="${l.id}">
+                    <div class="card-header-main">
+                      <div>
+                        <p class="font-bold" style="font-size: 15px;">${l.descricao}</p>
+                        <p class="font-bold" style="color: var(--text-main); font-size: 16px; margin-top: 4px;">R$ ${Number(l.valorMensal || l.valor).toFixed(2)}</p>
+                      </div>
+                      <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                        <span class="status-indicator ${isPago ? 'status-pago' : 'status-pendente'}">
+                          ${isPago ? 'Pago' : 'Pendente'}
+                        </span>
+                        <div style="display: flex; gap: 8px;">
+                          <button class="btn btn-ghost btn-toggle-details" style="padding: 4px 8px;">
+                            <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
+                          </button>
+                          <button class="btn-toggle-status btn ${isPago ? 'btn-ghost' : 'btn-success'}" 
+                                  data-id="${l.id}" 
+                                  data-tipo="${l.tipo}" 
+                                  data-status="${l.status || 'PENDENTE'}"
+                                  style="padding: 4px 8px;">
+                            <i data-lucide="${isPago ? 'rotate-ccw' : 'check'}" style="width: 16px; height: 16px;"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="card-details">
+                      <div class="detail-item">
+                        <label>Data</label>
+                        <span>${month}/${year}</span>
+                      </div>
+                      <div class="detail-item">
+                        <label>Categoria</label>
+                        <span>${l.categoria || '-'}</span>
+                      </div>
+                      <div class="detail-item">
+                        <label>Pagamento</label>
+                        <span>${l.formaPagamento || '-'}</span>
+                      </div>
+                      <div class="detail-item">
+                        <label>Cartão</label>
+                        <span>${l.cartao || '-'}</span>
+                      </div>
+                      <div class="detail-item">
+                        <label>Parcela</label>
+                        <span>${l.parcelaAtual ? `${l.parcelaAtual}/${l.parcelas}` : 'À vista / Fixo'}</span>
+                      </div>
+                    </div>
+                  </div>
+                `}).join('') : `
+                  <div style="text-align: center; padding: 48px; color: var(--text-muted);">Nenhum lançamento encontrado.</div>
+                `;
+              })()}
+            </div>
           </section>
         </div>
       </div>
@@ -242,6 +391,28 @@ export class DashboardView {
     // Re-initializar ícones que foram injetados no HTML
     import('lucide').then(lucide => {
       lucide.createIcons({ icons: lucide.icons });
+    });
+
+    // Listeners para detalhes do card mobile
+    container.querySelectorAll('.btn-toggle-details').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const card = btn.closest('.transaction-card');
+        const details = card.querySelector('.card-details');
+        const icon = btn.querySelector('i');
+        
+        details.classList.toggle('active');
+        
+        // Troca o ícone (chevron-down / chevron-up)
+        if (details.classList.contains('active')) {
+          btn.innerHTML = `<i data-lucide="chevron-up" style="width: 16px; height: 16px;"></i>`;
+        } else {
+          btn.innerHTML = `<i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>`;
+        }
+        
+        import('lucide').then(lucide => {
+          lucide.createIcons({ icons: lucide.icons });
+        });
+      });
     });
 
     // Listeners
@@ -266,7 +437,9 @@ export class DashboardView {
 
     // Lógica para alternar status (Pago/Pendente)
     container.querySelectorAll('.btn-toggle-status').forEach(btn => {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation(); // Evita expandir o card ao clicar no check
+        
         const id = btn.getAttribute('data-id');
         const tipo = btn.getAttribute('data-tipo');
         const currentStatus = btn.getAttribute('data-status');
@@ -274,20 +447,31 @@ export class DashboardView {
         const isNewPago = newStatus === 'PAGO';
 
         // 1. ATUALIZAÇÃO OTIMISTA (IMEDIATA)
-        const row = btn.closest('tr');
-        const badge = row.querySelector('.status-indicator');
+        // Funciona tanto na tabela quanto no card mobile
+        const elements = container.querySelectorAll(`[data-id="${id}"]`);
         
-        // Reflete a mudança visual na linha e no badge instantaneamente
-        row.style.opacity = isNewPago ? '0.6' : '1';
-        badge.className = `status-indicator ${isNewPago ? 'status-pago' : 'status-pendente'}`;
-        badge.textContent = isNewPago ? 'Pago' : 'Pendente';
+        elements.forEach(el => {
+          const badge = el.querySelector('.status-indicator');
+          const toggleBtn = el.querySelector('.btn-toggle-status');
+          
+          if (el.tagName === 'TR') {
+            el.style.opacity = isNewPago ? '0.6' : '1';
+          } else if (el.classList.contains('transaction-card')) {
+            el.style.opacity = isNewPago ? '0.7' : '1';
+          }
+          
+          if (badge) {
+            badge.className = `status-indicator ${isNewPago ? 'status-pago' : 'status-pendente'}`;
+            badge.textContent = isNewPago ? 'Pago' : 'Pendente';
+          }
+          
+          if (toggleBtn) {
+            toggleBtn.setAttribute('data-status', newStatus);
+            toggleBtn.className = `btn-toggle-status btn ${isNewPago ? 'btn-ghost' : 'btn-success'}`;
+            toggleBtn.innerHTML = `<i data-lucide="${isNewPago ? 'rotate-ccw' : 'check'}" style="width: 16px; height: 16px;"></i>`;
+          }
+        });
         
-        // Altera o estado do botão para o próximo clique
-        btn.setAttribute('data-status', newStatus);
-        btn.className = `btn-toggle-status btn ${isNewPago ? 'btn-ghost' : 'btn-success'}`;
-        btn.innerHTML = `<i data-lucide="${isNewPago ? 'rotate-ccw' : 'check'}" style="width: 16px; height: 16px;"></i>`;
-        
-        // Re-inicializa apenas o ícone deste botão (lucide)
         import('lucide').then(lucide => { lucide.createIcons({ icons: lucide.icons }); });
 
         // 2. ATUALIZAÇÃO NO FIREBASE (SEGUNDO PLANO)
@@ -299,24 +483,14 @@ export class DashboardView {
         if (collectionKey) {
           try {
             await StorageService.update(collectionKey, { id, status: newStatus });
-            // Após salvamento, re-renderizamos para atualizar os cartões de resumo (totais)
-            // mas a linha o usuário já viu mudar instantaneamente
             await this.render(container);
           } catch (error) {
             alert('Erro ao sincronizar com o banco. Revertendo alteração...');
             console.error(error);
-            await this.render(container); // Reverte para o estado real do banco
+            await this.render(container);
           }
         }
       });
     });
-
-    // Remover o listener antigo do filter-month pois ele foi substituído
-    if (document.getElementById('filter-month')) {
-      document.getElementById('filter-month').addEventListener('change', async (e) => {
-        this.currentMonth = e.target.value;
-        await this.render(container);
-      });
-    }
   }
 }
