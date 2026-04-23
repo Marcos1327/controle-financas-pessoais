@@ -311,6 +311,16 @@ export class StorageView {
             animation: fadeIn 0.3s ease-out forwards;
           }
 
+          .content-padding {
+            padding-bottom: 110px !important;
+          }
+
+          @media (min-width: 1025px) {
+            .content-padding {
+              padding-bottom: 24px !important;
+            }
+          }
+
           .modal-content .grid-mobile-stack {
             grid-template-columns: 1fr !important;
             gap: 16px !important;
