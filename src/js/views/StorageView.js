@@ -284,6 +284,21 @@ export class StorageView {
 
           .modal-overlay.active .modal-content {
             transform: translateY(0);
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          }
+
+          @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+          }
+
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+
+          .modal-overlay.active {
+            animation: fadeIn 0.3s ease-out forwards;
           }
 
           .modal-content .grid-mobile-stack {
