@@ -8,22 +8,103 @@ import { StorageService, KEYS } from '../storage/StorageService.js';
 
 export class DashboardView {
   constructor() {
-    this.currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
+    this.currentYear = new Date().getFullYear().toString();
     this.filters = {
-      categoria: 'all',
-      formaPagamento: 'all',
-      cartao: 'all',
-      status: 'all'
+      meses: [String(new Date().getMonth() + 1).padStart(2, '0')], // Array de strings "01", "02"
+      categoria: [], // Vazio = todos
+      formaPagamento: [], // Vazio = todos
+      cartao: [], // Vazio = todos
+      status: [] // Vazio = todos
     };
+    this.allData = null;
+    this.currentSummary = null;
+    this.lastRenderedYearMonths = "";
   }
 
-  async render(container) {
-    // Estado de carregamento
-    if (!container.innerHTML.includes('main-content')) {
-      container.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 80vh; color: var(--text-muted);">Carregando dados...</div>`;
+  async render(container, isUpdateOnly = false) {
+    // 1. CARREGAMENTO INTELIGENTE DE DADOS
+    // Busca dados brutos se não existirem (cache inicial)
+    if (!this.allData) {
+      this.allData = await DashboardService.getAllData();
     }
+    const { fixas, parceladas, avulsas } = this.allData;
 
-    const summary = await DashboardService.getMonthlySummary(this.currentMonth);
+    const currentYear = new Date().getFullYear().toString();
+    const yearsFromAvulsas = avulsas.map(a => a.data.split('-')[0]);
+    const availableYears = [...new Set([currentYear, ...yearsFromAvulsas])].sort((a, b) => b - a);
+
+    if (!this.currentYear) this.currentYear = currentYear;
+    const selYear = this.currentYear;
+    const currentMonthNum = new Date().getMonth() + 1;
+
+    // 2. MESES DISPONÍVEIS
+    const hasGlobalDebts = fixas.length > 0 || parceladas.some(p => p.status === 'ATIVO');
+    const availableMonths = [];
+    for (let m = 1; m <= 12; m++) {
+      const monthStr = String(m).padStart(2, '0');
+      const monthYear = `${selYear}-${monthStr}`;
+      const hasAvulsasThisMonth = avulsas.some(a => a.data.startsWith(monthYear));
+      const isPastOrCurrentMonthOfCurrentYear = (selYear === currentYear && m <= currentMonthNum);
+      const isPastYear = (selYear < currentYear);
+
+      let isAvailable = false;
+      if (hasAvulsasThisMonth) isAvailable = true;
+      else if (hasGlobalDebts && (isPastYear || isPastOrCurrentMonthOfCurrentYear)) isAvailable = true;
+
+      if (isAvailable) availableMonths.push(monthStr);
+    }
+    
+    // Validação meses
+    if (this.filters.meses.length === 0 && availableMonths.length > 0) {
+      this.filters.meses = [availableMonths[availableMonths.length - 1]];
+    }
+    this.filters.meses = this.filters.meses.filter(m => availableMonths.includes(m));
+
+    // 3. OTIMIZAÇÃO: SÓ CALCULA O SUMÁRIO SE O ANO OU MESES MUDARAM
+    const currentYearMonthsKey = selYear + this.filters.meses.join(',');
+    if (this.lastRenderedYearMonths !== currentYearMonthsKey || !this.currentSummary) {
+      const selectedMonthsPaths = this.filters.meses.map(m => `${selYear}-${m}`);
+      this.currentSummary = await DashboardService.getMonthlySummary(selectedMonthsPaths, this.allData);
+      this.lastRenderedYearMonths = currentYearMonthsKey;
+    }
+    const summary = this.currentSummary;
+    const lancamentosBase = summary.lancamentos;
+
+    // Opções Dinâmicas (Simplificadas agora que é multi-select)
+    const categories = [...new Set(lancamentosBase.map(l => l.categoria).filter(Boolean))].sort();
+    const payments = [...new Set(lancamentosBase.map(l => l.formaPagamento).filter(Boolean))].sort();
+    const cards = [...new Set(lancamentosBase.map(l => l.cartao).filter(Boolean))].sort();
+    const statuses = [...new Set(lancamentosBase.map(l => {
+      const s = (l.status || 'PENDENTE').toUpperCase();
+      return s === 'PAGO' ? 'PAGO' : 'PENDENTE';
+    }))].sort();
+
+    // Helpers para labels resumo
+    const getLabel = (type, list, allOptions) => {
+      if (list.length === 0) return 'Todos';
+      if (list.length === 1) {
+        if (type === 'mes') {
+          const m = new Date(2000, parseInt(list[0]) - 1).toLocaleString('pt-BR', {month: 'long'});
+          return m.charAt(0).toUpperCase() + m.slice(1);
+        }
+        if (type === 'status') return list[0] === 'PAGO' ? 'Pago' : 'Pendente';
+        return list[0];
+      }
+      if (list.length === allOptions.length) return 'Todos';
+      return `${list.length} Selecionados`;
+    };
+
+    const monthLabel = getLabel('mes', this.filters.meses, availableMonths);
+    const catLabel = getLabel('cat', this.filters.categoria, categories);
+    const payLabel = getLabel('pay', this.filters.formaPagamento, payments);
+    const cardLabel = getLabel('card', this.filters.cartao, cards);
+    const statusLabel = getLabel('status', this.filters.status, statuses);
+
+    const getMonthName = (m) => {
+      const date = new Date(2000, parseInt(m) - 1);
+      const name = date.toLocaleString('pt-BR', { month: 'long' });
+      return name.charAt(0).toUpperCase() + name.slice(1);
+    };
 
     container.innerHTML = `
       <style>
@@ -64,8 +145,122 @@ export class DashboardView {
         .filter-group {
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 6px;
           flex: 1 1 150px;
+          position: relative;
+        }
+
+        .custom-dropdown {
+          position: relative;
+          width: 100%;
+        }
+
+        .dropdown-trigger {
+          width: 100%;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 12px;
+          background: var(--bg-main);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          color: var(--text-main);
+          font-size: 13px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .dropdown-trigger:hover {
+          border-color: var(--primary);
+          background: var(--bg-card);
+          transform: translateY(-1px);
+        }
+
+        .dropdown-trigger:active {
+          transform: translateY(0);
+        }
+
+        .dropdown-trigger.active {
+          border-color: var(--primary);
+          background: var(--bg-card);
+          box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.2);
+        }
+
+        .dropdown-menu {
+          position: absolute;
+          top: calc(100% + 4px);
+          left: 0;
+          width: 100%;
+          background: #ffffff; /* Fundo sólido para evitar transparência */
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+          z-index: 100; /* Garantir que fique por cima de tudo */
+          max-height: 250px;
+          overflow-y: auto;
+          display: none;
+          padding: 6px;
+        }
+
+        [data-theme="dark"] .dropdown-menu {
+          background: #1a1a1a; /* Cor sólida para tema escuro */
+        }
+
+        .dropdown-menu.active {
+          display: block;
+          animation: dropdownIn 0.2s ease-out;
+        }
+
+        @keyframes dropdownIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .dropdown-item {
+          padding: 8px 12px;
+          border-radius: 8px;
+          font-size: 13px;
+          color: var(--text-main);
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .dropdown-item:hover {
+          background: var(--bg-main);
+          color: var(--primary);
+        }
+
+        .dropdown-item.selected {
+          background: rgba(var(--primary-rgb), 0.1);
+          color: var(--primary);
+          font-weight: 600;
+        }
+
+        .btn-reset-filters {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 8px 16px;
+          background: rgba(239, 68, 68, 0.1);
+          color: #ef4444;
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          align-self: flex-end;
+          height: 38px;
+        }
+
+        .btn-reset-filters:hover {
+          background: #ef4444;
+          color: white;
+          border-color: #ef4444;
         }
 
         /* Mobile specific controls */
@@ -216,57 +411,151 @@ export class DashboardView {
           </div>
 
           <div id="filter-bar" class="filter-bar">
+            <!-- ANO -->
             <div class="filter-group">
               <label>Ano</label>
-              <select id="f-year">
-                ${[2024, 2025, 2026].map(y => `<option value="${y}" ${this.currentMonth.startsWith(y) ? 'selected' : ''}>${y}</option>`).join('')}
-              </select>
+              <div class="custom-dropdown" data-filter="year" data-type="single">
+                <button class="dropdown-trigger">
+                  <span>${selYear}</span>
+                  <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
+                </button>
+                <div class="dropdown-menu">
+                  ${availableYears.map(y => `
+                    <div class="dropdown-item ${selYear === y ? 'selected' : ''}" data-value="${y}">${y}</div>
+                  `).join('')}
+                </div>
+              </div>
             </div>
+
+            <!-- MÊS -->
             <div class="filter-group">
               <label>Mês</label>
-              <select id="f-month">
-                ${Array.from({length: 12}, (_, i) => {
-                  const m = String(i + 1).padStart(2, '0');
-                  return `<option value="${m}" ${this.currentMonth.endsWith(m) ? 'selected' : ''}>${new Date(2000, i).toLocaleString('pt-BR', {month: 'long'})}</option>`;
-                }).join('')}
-              </select>
+              <div class="custom-dropdown" data-filter="meses" data-type="multi">
+                <button class="dropdown-trigger">
+                  <span>${monthLabel}</span>
+                  <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
+                </button>
+                <div class="dropdown-menu">
+                  <div class="dropdown-item ${this.filters.meses.length === availableMonths.length ? 'selected' : ''}" data-value="all">
+                    <i data-lucide="${this.filters.meses.length === availableMonths.length ? 'check-square' : 'square'}" style="width: 14px; height: 14px;"></i>
+                    Selecionar Tudo
+                  </div>
+                  ${availableMonths.map(m => {
+                    const label = new Date(2000, parseInt(m) - 1).toLocaleString('pt-BR', {month: 'long'});
+                    const capitalizedLabel = label.charAt(0).toUpperCase() + label.slice(1);
+                    return `<div class="dropdown-item ${this.filters.meses.includes(m) ? 'selected' : ''}" data-value="${m}">
+                      <i data-lucide="${this.filters.meses.includes(m) ? 'check-square' : 'square'}" style="width: 14px; height: 14px;"></i>
+                      ${capitalizedLabel}
+                    </div>`;
+                  }).join('')}
+                </div>
+              </div>
             </div>
+
+            <!-- CATEGORIA -->
             <div class="filter-group">
               <label>Categoria</label>
-              <select id="f-categoria">
-                <option value="all">Todas</option>
-                ${[...new Set(summary.lancamentos.map(l => l.categoria).filter(Boolean))].map(c => `<option value="${c}" ${this.filters.categoria === c ? 'selected' : ''}>${c}</option>`).join('')}
-              </select>
+              <div class="custom-dropdown" data-filter="categoria" data-type="multi">
+                <button class="dropdown-trigger">
+                  <span>${catLabel}</span>
+                  <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
+                </button>
+                <div class="dropdown-menu">
+                  <div class="dropdown-item ${this.filters.categoria.length === categories.length ? 'selected' : ''}" data-value="all">
+                    <i data-lucide="${this.filters.categoria.length === categories.length ? 'check-square' : 'square'}" style="width: 14px; height: 14px;"></i>
+                    Selecionar Tudo
+                  </div>
+                  ${categories.map(c => `
+                    <div class="dropdown-item ${this.filters.categoria.includes(c) ? 'selected' : ''}" data-value="${c}">
+                      <i data-lucide="${this.filters.categoria.includes(c) ? 'check-square' : 'square'}" style="width: 14px; height: 14px;"></i>
+                      ${c}
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
             </div>
+
+            <!-- PAGAMENTO -->
             <div class="filter-group">
               <label>Forma Pagamento</label>
-              <select id="f-pagamento">
-                <option value="all">Todas</option>
-                ${[...new Set(summary.lancamentos.map(l => l.formaPagamento).filter(Boolean))].map(f => `<option value="${f}" ${this.filters.formaPagamento === f ? 'selected' : ''}>${f}</option>`).join('')}
-              </select>
+              <div class="custom-dropdown" data-filter="formaPagamento" data-type="multi">
+                <button class="dropdown-trigger">
+                  <span>${payLabel}</span>
+                  <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
+                </button>
+                <div class="dropdown-menu">
+                  <div class="dropdown-item ${this.filters.formaPagamento.length === payments.length ? 'selected' : ''}" data-value="all">
+                    <i data-lucide="${this.filters.formaPagamento.length === payments.length ? 'check-square' : 'square'}" style="width: 14px; height: 14px;"></i>
+                    Selecionar Tudo
+                  </div>
+                  ${payments.map(f => `
+                    <div class="dropdown-item ${this.filters.formaPagamento.includes(f) ? 'selected' : ''}" data-value="${f}">
+                      <i data-lucide="${this.filters.formaPagamento.includes(f) ? 'check-square' : 'square'}" style="width: 14px; height: 14px;"></i>
+                      ${f}
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
             </div>
+
+            <!-- CARTÃO -->
             <div class="filter-group">
               <label>Cartão</label>
-              <select id="f-cartao">
-                <option value="all">Todos</option>
-                ${[...new Set(summary.lancamentos.map(l => l.cartao).filter(Boolean))].map(c => `<option value="${c}" ${this.filters.cartao === c ? 'selected' : ''}>${c}</option>`).join('')}
-              </select>
+              <div class="custom-dropdown" data-filter="cartao" data-type="multi">
+                <button class="dropdown-trigger">
+                  <span>${cardLabel}</span>
+                  <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
+                </button>
+                <div class="dropdown-menu">
+                  <div class="dropdown-item ${this.filters.cartao.length === cards.length ? 'selected' : ''}" data-value="all">
+                    <i data-lucide="${this.filters.cartao.length === cards.length ? 'check-square' : 'square'}" style="width: 14px; height: 14px;"></i>
+                    Selecionar Tudo
+                  </div>
+                  ${cards.map(c => `
+                    <div class="dropdown-item ${this.filters.cartao.includes(c) ? 'selected' : ''}" data-value="${c}">
+                      <i data-lucide="${this.filters.cartao.includes(c) ? 'check-square' : 'square'}" style="width: 14px; height: 14px;"></i>
+                      ${c}
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
             </div>
+
+            <!-- STATUS -->
             <div class="filter-group">
               <label>Status</label>
-              <select id="f-status">
-                <option value="all" ${this.filters.status === 'all' ? 'selected' : ''}>Todos</option>
-                <option value="PAGO" ${this.filters.status === 'PAGO' ? 'selected' : ''}>Pago</option>
-                <option value="PENDENTE" ${this.filters.status === 'PENDENTE' ? 'selected' : ''}>Pendente</option>
-              </select>
+              <div class="custom-dropdown" data-filter="status" data-type="multi">
+                <button class="dropdown-trigger">
+                  <span>${statusLabel}</span>
+                  <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
+                </button>
+                <div class="dropdown-menu">
+                  <div class="dropdown-item ${this.filters.status.length === statuses.length ? 'selected' : ''}" data-value="all">
+                    <i data-lucide="${this.filters.status.length === statuses.length ? 'check-square' : 'square'}" style="width: 14px; height: 14px;"></i>
+                    Selecionar Tudo
+                  </div>
+                  ${statuses.map(s => `
+                    <div class="dropdown-item ${this.filters.status.includes(s) ? 'selected' : ''}" data-value="${s}">
+                      <i data-lucide="${this.filters.status.includes(s) ? 'check-square' : 'square'}" style="width: 14px; height: 14px;"></i>
+                      ${s === 'PAGO' ? 'Pago' : 'Pendente'}
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
             </div>
+
+            <!-- RESET BUTTON -->
+            <button id="btn-reset-filters" class="btn-reset-filters" title="Resetar todos os filtros">
+              <i data-lucide="refresh-ccw" style="width: 14px; height: 14px;"></i>
+              Limpar Filtros
+            </button>
           </div>
 
           <div class="grid-stats">
             <div class="card" style="position: relative;">
               <p class="card-title">Gasto Total</p>
               <p class="card-value">R$ ${summary.totalGeral.toFixed(2)}</p>
-              <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Soma de todos os itens</p>
+              
               
               <!-- Mobile only toggle for details -->
               <button id="btn-toggle-stats-mobile" class="btn btn-ghost" style="display: none; position: absolute; top: 16px; right: 16px; padding: 4px;">
@@ -323,21 +612,27 @@ export class DashboardView {
                 <tbody>
                   ${(() => {
                     const filtered = summary.lancamentos.filter(l => {
-                      if (this.filters.categoria !== 'all' && l.categoria !== this.filters.categoria) return false;
-                      if (this.filters.formaPagamento !== 'all' && l.formaPagamento !== this.filters.formaPagamento) return false;
-                      if (this.filters.cartao !== 'all' && l.cartao !== this.filters.cartao) return false;
-                      if (this.filters.status !== 'all' && (l.status || 'PENDENTE') !== this.filters.status) return false;
+                      if (this.filters.categoria.length > 0 && !this.filters.categoria.includes(l.categoria)) return false;
+                      if (this.filters.formaPagamento.length > 0 && !this.filters.formaPagamento.includes(l.formaPagamento)) return false;
+                      if (this.filters.cartao.length > 0 && !this.filters.cartao.includes(l.cartao)) return false;
+                      
+                      if (this.filters.status.length > 0) {
+                        const lStatus = (l.status || 'PENDENTE').toUpperCase();
+                        const normalizeStatus = lStatus === 'PAGO' ? 'PAGO' : 'PENDENTE';
+                        if (!this.filters.status.includes(normalizeStatus)) return false;
+                      }
                       return true;
                     });
 
                     return filtered.length > 0 ? filtered.map(l => {
-                      const [year, month] = (l.data ? l.data.split('-') : this.currentMonth.split('-'));
+                      const [year, mNum] = (l.data ? l.data.split('-') : (l.dataRef || '0000-00').split('-'));
+                      const monthName = getMonthName(mNum);
                       const isPago = l.status === 'PAGO';
                       
                       return `
                       <tr style="${isPago ? 'opacity: 0.6;' : ''}" data-id="${l.id}">
                         <td>${year}</td>
-                        <td>${month}</td>
+                        <td>${monthName}</td>
                         <td class="font-bold">${l.descricao}</td>
                         <td class="text-right font-bold">R$ ${Number(l.valorMensal || l.valor).toFixed(2)}</td>
                         <td>${l.categoria || '-'}</td>
@@ -373,16 +668,22 @@ export class DashboardView {
             <div class="mobile-list">
               ${(() => {
                 const filtered = summary.lancamentos.filter(l => {
-                  if (this.filters.categoria !== 'all' && l.categoria !== this.filters.categoria) return false;
-                  if (this.filters.formaPagamento !== 'all' && l.formaPagamento !== this.filters.formaPagamento) return false;
-                  if (this.filters.cartao !== 'all' && l.cartao !== this.filters.cartao) return false;
-                  if (this.filters.status !== 'all' && (l.status || 'PENDENTE') !== this.filters.status) return false;
+                  if (this.filters.categoria.length > 0 && !this.filters.categoria.includes(l.categoria)) return false;
+                  if (this.filters.formaPagamento.length > 0 && !this.filters.formaPagamento.includes(l.formaPagamento)) return false;
+                  if (this.filters.cartao.length > 0 && !this.filters.cartao.includes(l.cartao)) return false;
+                  
+                  if (this.filters.status.length > 0) {
+                    const lStatus = (l.status || 'PENDENTE').toUpperCase();
+                    const normalizeStatus = lStatus === 'PAGO' ? 'PAGO' : 'PENDENTE';
+                    if (!this.filters.status.includes(normalizeStatus)) return false;
+                  }
                   return true;
                 });
 
                 return filtered.length > 0 ? filtered.map(l => {
                   const isPago = l.status === 'PAGO';
-                  const [year, month] = (l.data ? l.data.split('-') : this.currentMonth.split('-'));
+                  const [year, mNum] = (l.data ? l.data.split('-') : (l.dataRef || '0000-00').split('-'));
+                  const monthName = getMonthName(mNum);
                   
                   return `
                   <div class="transaction-card" style="${isPago ? 'opacity: 0.7;' : ''}" data-id="${l.id}">
@@ -413,7 +714,7 @@ export class DashboardView {
                     <div class="card-details">
                       <div class="detail-item">
                         <label>Data</label>
-                        <span>${month}/${year}</span>
+                        <span>${monthName}/${year}</span>
                       </div>
                       <div class="detail-item">
                         <label>Categoria</label>
@@ -489,25 +790,114 @@ export class DashboardView {
       });
     });
 
-    // Listeners
-    const updateView = async () => {
-      const year = document.getElementById('f-year').value;
-      const month = document.getElementById('f-month').value;
-      this.currentMonth = `${year}-${month}`;
-      
-      this.filters = {
-        categoria: document.getElementById('f-categoria').value,
-        formaPagamento: document.getElementById('f-pagamento').value,
-        cartao: document.getElementById('f-cartao').value,
-        status: document.getElementById('f-status').value
-      };
-      
-      await this.render(container);
+    // Listeners para os Custom Dropdowns
+    const closeAllDropdowns = () => {
+      container.querySelectorAll('.dropdown-menu.active').forEach(m => m.classList.remove('active'));
+      container.querySelectorAll('.dropdown-trigger.active').forEach(t => t.classList.remove('active'));
     };
 
-    ['f-year', 'f-month', 'f-categoria', 'f-pagamento', 'f-cartao', 'f-status'].forEach(id => {
-      document.getElementById(id).addEventListener('change', updateView);
+    container.querySelectorAll('.custom-dropdown').forEach(dropdown => {
+      const trigger = dropdown.querySelector('.dropdown-trigger');
+      const menu = dropdown.querySelector('.dropdown-menu');
+      const filterType = dropdown.getAttribute('data-filter');
+      const isMulti = dropdown.getAttribute('data-type') === 'multi';
+
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isActive = menu.classList.contains('active');
+        
+        // Fecha outros antes de abrir o novo
+        closeAllDropdowns();
+
+        if (!isActive) {
+          menu.classList.add('active');
+          trigger.classList.add('active');
+        }
+      });
+
+      menu.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const value = item.getAttribute('data-value');
+          if (!value) return;
+
+          if (!isMulti) {
+            // Lógica Single (Ano)
+            if (filterType === 'year') {
+              this.currentYear = value;
+            }
+            closeAllDropdowns();
+          } else {
+            // Lógica Multi (Mês, Categoria, etc)
+            let list = this.filters[filterType];
+            
+            if (value === 'all') {
+              const allOptionsMap = {
+                meses: availableMonths,
+                categoria: categories,
+                formaPagamento: payments,
+                cartao: cards,
+                status: statuses
+              };
+              const options = allOptionsMap[filterType];
+              if (list.length === options.length) {
+                this.filters[filterType] = filterType === 'meses' && options.length > 0 ? [options[options.length-1]] : [];
+              } else {
+                this.filters[filterType] = [...options];
+              }
+            } else {
+              if (list.includes(value)) {
+                list = list.filter(v => v !== value);
+              } else {
+                list.push(value);
+              }
+              this.filters[filterType] = list;
+            }
+          }
+
+          // RENDERIZAÇÃO OTIMIZADA:
+          // Se mudou apenas filtros secundários (que não mudam os dados base), 
+          // poderíamos ter um render mais rápido, mas aqui vamos focar no cache de dados.
+          await this.render(container);
+          
+          // Se for multi-seleção, vamos re-abrir o menu que o render fechou
+          if (isMulti) {
+             const newDropdown = container.querySelector(`.custom-dropdown[data-filter="${filterType}"]`);
+             if (newDropdown) {
+                newDropdown.querySelector('.dropdown-menu').classList.add('active');
+                newDropdown.querySelector('.dropdown-trigger').classList.add('active');
+             }
+          }
+        });
+      });
     });
+
+    // Fecha dropdowns ao clicar em qualquer lugar da tela
+    const globalClickHandler = (e) => {
+      if (!e.target.closest('.custom-dropdown')) {
+        closeAllDropdowns();
+      }
+    };
+    
+    // Removemos listener anterior para não acumular
+    document.removeEventListener('click', globalClickHandler);
+    document.addEventListener('click', globalClickHandler);
+
+    // Listener para o botão de Reset
+    const btnReset = container.querySelector('#btn-reset-filters');
+    if (btnReset) {
+      btnReset.addEventListener('click', async () => {
+        this.currentYear = new Date().getFullYear().toString();
+        this.filters = {
+          meses: [String(new Date().getMonth() + 1).padStart(2, '0')],
+          categoria: [],
+          formaPagamento: [],
+          cartao: [],
+          status: []
+        };
+        await this.render(container);
+      });
+    }
 
     // Lógica para alternar status (Pago/Pendente)
     container.querySelectorAll('.btn-toggle-status').forEach(btn => {
@@ -516,7 +906,7 @@ export class DashboardView {
         
         const id = btn.getAttribute('data-id');
         const tipo = btn.getAttribute('data-tipo');
-        const currentStatus = btn.getAttribute('data-status');
+        const currentStatus = (btn.getAttribute('data-status') || 'PENDENTE').toUpperCase();
         const newStatus = currentStatus === 'PAGO' ? 'PENDENTE' : 'PAGO';
         const isNewPago = newStatus === 'PAGO';
 
@@ -566,11 +956,12 @@ export class DashboardView {
         else if (tipo === 'avulsa') collectionKey = KEYS.COMPRAS_AVULSAS;
 
         if (collectionKey) {
-          // Não damos await no render para não travar a UI
           StorageService.update(collectionKey, { id, status: newStatus }).then(() => {
-            // Opcional: renderizar após um tempo ou apenas se houver mudanças reais detectadas
-            // Para manter a fluidez, vamos evitar o render completo aqui se o otimista funcionou
-            // mas vamos agendar um pequeno refresh silencioso
+            // Invalida o cache de dados globais para forçar recarga no próximo render real
+            this.allData = null;
+            this.currentSummary = null;
+            
+            // Agenda um refresh silencioso (opcional, já que o otimista resolveu visualmente)
             setTimeout(() => this.render(container), 2000); 
           }).catch(error => {
             alert('Erro ao sincronizar. Revertendo...');
