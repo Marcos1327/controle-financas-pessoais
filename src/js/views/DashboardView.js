@@ -271,24 +271,41 @@ export class DashboardView {
         const tipo = btn.getAttribute('data-tipo');
         const currentStatus = btn.getAttribute('data-status');
         const newStatus = currentStatus === 'PAGO' ? 'PENDENTE' : 'PAGO';
+        const isNewPago = newStatus === 'PAGO';
 
+        // 1. ATUALIZAÇÃO OTIMISTA (IMEDIATA)
+        const row = btn.closest('tr');
+        const badge = row.querySelector('.status-indicator');
+        
+        // Reflete a mudança visual na linha e no badge instantaneamente
+        row.style.opacity = isNewPago ? '0.6' : '1';
+        badge.className = `status-indicator ${isNewPago ? 'status-pago' : 'status-pendente'}`;
+        badge.textContent = isNewPago ? 'Pago' : 'Pendente';
+        
+        // Altera o estado do botão para o próximo clique
+        btn.setAttribute('data-status', newStatus);
+        btn.className = `btn-toggle-status btn ${isNewPago ? 'btn-ghost' : 'btn-success'}`;
+        btn.innerHTML = `<i data-lucide="${isNewPago ? 'rotate-ccw' : 'check'}" style="width: 16px; height: 16px;"></i>`;
+        
+        // Re-inicializa apenas o ícone deste botão (lucide)
+        import('lucide').then(lucide => { lucide.createIcons({ icons: lucide.icons }); });
+
+        // 2. ATUALIZAÇÃO NO FIREBASE (SEGUNDO PLANO)
         let collectionKey = '';
         if (tipo === 'fixa') collectionKey = KEYS.DIVIDAS_FIXAS;
         else if (tipo === 'parcelada') collectionKey = KEYS.DIVIDAS_PARCELADAS;
         else if (tipo === 'avulsa') collectionKey = KEYS.COMPRAS_AVULSAS;
 
         if (collectionKey) {
-          // Feedback de carregamento no botão
-          btn.innerHTML = `<div class="spinner" style="width: 14px; height: 14px; border-width: 2px;"></div>`;
-          btn.disabled = true;
-
           try {
             await StorageService.update(collectionKey, { id, status: newStatus });
+            // Após salvamento, re-renderizamos para atualizar os cartões de resumo (totais)
+            // mas a linha o usuário já viu mudar instantaneamente
             await this.render(container);
           } catch (error) {
-            alert('Erro ao atualizar status. Tente novamente.');
+            alert('Erro ao sincronizar com o banco. Revertendo alteração...');
             console.error(error);
-            await this.render(container);
+            await this.render(container); // Reverte para o estado real do banco
           }
         }
       });
