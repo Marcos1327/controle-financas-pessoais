@@ -198,7 +198,7 @@ export class DashboardView {
       <div class="main-content">
         <header class="page-header">
           <div style="display: flex; align-items: center; gap: 12px;">
-            <button id="btn-toggle-sidebar" class="btn btn-ghost" style="padding: 8px; display: none;">
+            <button id="btn-toggle-sidebar" class="btn btn-ghost toggle-sidebar-btn" style="padding: 8px; display: none;">
               <i data-lucide="menu" style="width: 20px; height: 20px;"></i>
             </button>
             <div class="breadcrumb">
@@ -468,12 +468,6 @@ export class DashboardView {
           lucide.createIcons({ icons: lucide.icons });
         });
       });
-    });
-
-    // Toggle Sidebar Mobile
-    document.getElementById('btn-toggle-sidebar')?.addEventListener('click', () => {
-      document.querySelector('.sidebar').classList.add('active');
-      document.getElementById('sidebar-overlay').classList.add('active');
     });
 
     // Toggle Filtros Mobile

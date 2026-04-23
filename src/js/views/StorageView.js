@@ -21,8 +21,13 @@ export class StorageView {
     container.innerHTML = `
       <div class="main-content">
         <header class="page-header">
-          <div class="breadcrumb">
-            Gestão / <span style="color: var(--text-main);">${this.title}</span>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <button id="btn-toggle-sidebar" class="btn btn-ghost toggle-sidebar-btn" style="padding: 8px; display: none;">
+              <i data-lucide="menu" style="width: 20px; height: 20px;"></i>
+            </button>
+            <div class="breadcrumb">
+              Gestão / <span style="color: var(--text-main);">${this.title}</span>
+            </div>
           </div>
           <button id="btn-add" class="btn btn-primary">
             <i data-lucide="plus" style="width: 16px; height: 16px;"></i>

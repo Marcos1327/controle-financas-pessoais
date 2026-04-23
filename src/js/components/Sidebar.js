@@ -29,6 +29,9 @@ export function Sidebar(activeRoute) {
         <button id="btn-collapse-sidebar" class="btn btn-ghost desktop-only" style="padding: 4px; color: #94a3b8;">
            <i data-lucide="${isCollapsed ? 'chevrons-right' : 'chevrons-left'}" style="width: 20px; height: 20px;"></i>
         </button>
+        <button id="btn-close-sidebar-mobile" class="btn btn-ghost mobile-only" style="padding: 4px; color: #94a3b8; display: none;">
+           <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
       </div>
       
       <nav class="sidebar-nav">
@@ -86,6 +89,22 @@ export function Sidebar(activeRoute) {
       const btn = document.getElementById('btn-collapse-sidebar');
       btn.innerHTML = `<i data-lucide="${nextState ? 'chevrons-right' : 'chevrons-left'}" style="width: 20px; height: 20px;"></i>`;
       createIcons({ icons });
+    });
+
+    // Close Sidebar Mobile (X button)
+    document.getElementById('btn-close-sidebar-mobile')?.addEventListener('click', () => {
+      document.querySelector('.sidebar').classList.remove('active');
+      document.getElementById('sidebar-overlay').classList.remove('active');
+    });
+
+    // Auto-close sidebar on link click (for mobile/tablet)
+    document.querySelectorAll('.sidebar-link').forEach(link => {
+      link.addEventListener('click', () => {
+        if (window.innerWidth <= 1024) {
+          document.querySelector('.sidebar').classList.remove('active');
+          document.getElementById('sidebar-overlay').classList.remove('active');
+        }
+      });
     });
 
     // Toggle User Profile Logout Button

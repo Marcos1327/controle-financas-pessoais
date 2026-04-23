@@ -37,6 +37,15 @@ async function router() {
     overlay.classList.remove('active');
   });
 
+  // Global Sidebar Toggle Listener (for mobile)
+  appContainer.addEventListener('click', (e) => {
+    const toggleBtn = e.target.closest('#btn-toggle-sidebar');
+    if (toggleBtn) {
+      document.querySelector('.sidebar').classList.add('active');
+      document.getElementById('sidebar-overlay').classList.add('active');
+    }
+  });
+
   const viewFactory = routes[hash] || routes['#/'];
   
   const view = viewFactory();

@@ -125,6 +125,10 @@ body {
   .sidebar.active {
     transform: translateX(0);
   }
+
+  .toggle-sidebar-btn {
+    display: flex !important;
+  }
 }
 
 .sidebar-header {
@@ -427,3 +431,11 @@ input {
 .text-right { text-align: right; }
 .font-bold { font-weight: 700; }
 .hidden { display: none !important; }
+
+@media (min-width: 1025px) {
+  .mobile-only { display: none !important; }
+}
+@media (max-width: 1024px) {
+  .desktop-only { display: none !important; }
+  .sidebar.active #btn-close-sidebar-mobile { display: flex !important; }
+}
