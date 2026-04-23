@@ -12422,18 +12422,61 @@ This typically indicates that your device does not have a healthy Internet conne
           padding: 0;
           box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4), 0 4px 6px -4px rgba(79, 70, 229, 0.1);
           z-index: 90;
-          border: 4px solid white;
+          border: none;
         }
 
         .btn-fab:active {
           transform: scale(0.9) translateY(2px);
           box-shadow: 0 5px 10px -3px rgba(79, 70, 229, 0.4);
         }
+
+        /* Bottom Sheet Modal Styles */
+        @media (max-width: 640px) {
+          .modal-overlay {
+            align-items: flex-end;
+          }
+
+          .modal-content {
+            max-width: 100% !important;
+            width: 100%;
+            border-radius: 24px 24px 0 0 !important;
+            padding: 24px !important;
+            margin-bottom: 0;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+            border-bottom: none !important;
+          }
+
+          .modal-overlay.active .modal-content {
+            transform: translateY(0);
+          }
+
+          .modal-content .grid-mobile-stack {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+          }
+
+          .modal-content .modal-actions-mobile {
+            flex-direction: column-reverse;
+            gap: 12px !important;
+          }
+          
+          .bottom-sheet-handle {
+            display: block !important;
+            width: 40px;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            margin: -12px auto 24px;
+          }
+        }
       </style>
 
       <!-- Modal -->
       <div id="modal" class="modal-overlay">
         <form id="form-add" class="modal-content" style="max-width: 500px; padding: 32px; border: none;">
+          <div class="bottom-sheet-handle" style="display: none;"></div>
+          
           ${c?"":`
             <div style="margin-bottom: 24px;">
               <h3 id="modal-title" style="font-size: 1.25rem; font-weight: 700; margin: 0; color: var(--text-main);">Novo Registro</h3>
@@ -12454,7 +12497,7 @@ This typically indicates that your device does not have a healthy Internet conne
                      style="background: #f8fafc; border: 1px solid var(--border-color); padding: 12px 16px; font-size: 15px;">
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div class="grid-mobile-stack" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="label">Valor (R$)</label>
                 <input type="number" name="valor" step="0.01" placeholder="0,00" required
@@ -12483,7 +12526,7 @@ This typically indicates that your device does not have a healthy Internet conne
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 8px;">
+            <div class="grid-mobile-stack" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 8px;">
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="label">Forma de Pagamento</label>
                 <div class="custom-dropdown" data-name="formaPagamento">
@@ -12516,7 +12559,7 @@ This typically indicates that your device does not have a healthy Internet conne
             </div>
           `}
 
-          <div style="display: flex; gap: 16px; margin-top: 32px;">
+          <div class="modal-actions-mobile" style="display: flex; gap: 16px; margin-top: 32px;">
             <button type="button" id="btn-cancel" class="btn btn-ghost" style="flex: 1; height: 48px; justify-content: center; background: #f1f5f9; color: #475569;">Cancelar</button>
             <button type="submit" id="btn-save" class="btn btn-primary" style="flex: 1; height: 48px; justify-content: center;">Salvar Registro</button>
           </div>
