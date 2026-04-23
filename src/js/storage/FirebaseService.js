@@ -14,9 +14,11 @@ import { db, auth } from './firebase.js';
 // Mapeamento das chaves do localStorage para coleções do Firestore
 const COLLECTION_MAP = {
   'fp_categorias': 'categorias',
+  'fp_cartoes': 'cartoes',
   'fp_dividas_fixas': 'dividas_fixas',
   'fp_dividas_parceladas': 'dividas_parceladas',
-  'fp_compras_avulsas': 'compras_avulsas'
+  'fp_compras_avulsas': 'compras_avulsas',
+  'fp_formas_pagamento': 'formas_pagamento'
 };
 
 export const FirebaseService = {

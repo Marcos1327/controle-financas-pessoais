@@ -17,6 +17,7 @@ const routes = {
   '#/parceladas': () => new DividaParceladaView(),
   '#/avulsas': () => new StorageView('COMPRAS_AVULSAS', 'Compras Avulsas'),
   '#/categorias': () => new StorageView('CATEGORIAS', 'Categorias'),
+  '#/cartoes': () => new StorageView('CARTOES', 'Meus Cartões'),
 };
 
 async function router() {

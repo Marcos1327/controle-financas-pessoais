@@ -150,93 +150,54 @@ export class DashboardView {
           position: relative;
         }
 
-        .custom-dropdown {
+        /* Restaurando o design original compacto dos filtros do Dashboard */
+        .dashboard-filters .custom-dropdown {
           position: relative;
           width: 100%;
         }
 
-        .dropdown-trigger {
+        .dashboard-filters .dropdown-trigger {
           width: 100%;
           display: flex;
           justify-content: space-between;
           align-items: center;
           padding: 8px 12px;
-          background: var(--bg-main);
+          background: var(--bg-app);
           border: 1px solid var(--border-color);
           border-radius: 8px;
           color: var(--text-main);
           font-size: 13px;
           cursor: pointer;
           transition: all 0.2s;
+          height: 38px; /* Mais compacto */
         }
 
-        .dropdown-trigger:hover {
+        .dashboard-filters .dropdown-trigger:hover {
           border-color: var(--primary);
-          background: var(--bg-card);
           transform: translateY(-1px);
+          /* Fundo removido conforme solicitado */
         }
 
-        .dropdown-trigger:active {
-          transform: translateY(0);
-        }
-
-        .dropdown-trigger.active {
+        .dashboard-filters .dropdown-trigger.active {
           border-color: var(--primary);
-          background: var(--bg-card);
-          box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.2);
+          box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
         }
 
-        .dropdown-menu {
-          position: absolute;
-          top: calc(100% + 4px);
-          left: 0;
-          width: 100%;
-          background: #ffffff; /* Fundo sólido para evitar transparência */
-          border: 1px solid var(--border-color);
-          border-radius: 12px;
-          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-          z-index: 100; /* Garantir que fique por cima de tudo */
-          max-height: 250px;
-          overflow-y: auto;
-          display: none;
-          padding: 6px;
-        }
-
-        [data-theme="dark"] .dropdown-menu {
-          background: #1a1a1a; /* Cor sólida para tema escuro */
-        }
-
-        .dropdown-menu.active {
-          display: block;
-          animation: dropdownIn 0.2s ease-out;
-        }
-
-        @keyframes dropdownIn {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        .dropdown-item {
+        .dashboard-filters .dropdown-item {
           padding: 8px 12px;
-          border-radius: 8px;
           font-size: 13px;
-          color: var(--text-main);
-          cursor: pointer;
-          transition: all 0.2s;
-          display: flex;
-          align-items: center;
-          gap: 8px;
+          background: transparent !important; /* Garante que não tenha fundo */
         }
 
-        .dropdown-item:hover {
-          background: var(--bg-main);
+        .dashboard-filters .dropdown-item:hover {
+          background: var(--bg-app) !important;
           color: var(--primary);
         }
 
-        .dropdown-item.selected {
-          background: rgba(var(--primary-rgb), 0.1);
+        .dashboard-filters .dropdown-item.selected {
+          background: transparent !important; /* Remove fundo do item selecionado */
           color: var(--primary);
-          font-weight: 600;
+          font-weight: 700;
         }
 
         .btn-reset-filters {
@@ -410,7 +371,7 @@ export class DashboardView {
             </button>
           </div>
 
-          <div id="filter-bar" class="filter-bar">
+          <div id="filter-bar" class="filter-bar dashboard-filters">
             <!-- ANO -->
             <div class="filter-group">
               <label>Ano</label>

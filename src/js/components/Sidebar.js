@@ -16,6 +16,7 @@ export function Sidebar(activeRoute) {
     { id: 'parceladas', label: 'Parcelamentos', hash: '#/parceladas', icon: 'credit-card' },
     { id: 'avulsas', label: 'Compras Avulsas', hash: '#/avulsas', icon: 'shopping-cart' },
     { id: 'categorias', label: 'Categorias', hash: '#/categorias', icon: 'list' },
+    { id: 'cartoes', label: 'Meus Cartões', hash: '#/cartoes', icon: 'credit-card' },
   ];
 
   const html = `
