@@ -12439,8 +12439,6 @@ This typically indicates that your device does not have a healthy Internet conne
           .modal-content {
             max-width: 100% !important;
             width: 100%;
-            max-height: 85vh;
-            overflow-y: auto;
             border-radius: 24px 24px 0 0 !important;
             padding: 24px !important;
             margin-bottom: 0;
@@ -12453,7 +12451,11 @@ This typically indicates that your device does not have a healthy Internet conne
           .modal-content input, 
           .modal-content .dropdown-trigger {
             width: 100% !important;
+            max-width: 100% !important;
             box-sizing: border-box !important;
+            min-width: 0;
+            -webkit-appearance: none;
+            appearance: none;
           }
 
           .modal-overlay.active .modal-content {
