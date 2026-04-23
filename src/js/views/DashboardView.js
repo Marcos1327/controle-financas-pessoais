@@ -335,7 +335,7 @@ export class DashboardView {
                       const isPago = l.status === 'PAGO';
                       
                       return `
-                      <tr style="${isPago ? 'opacity: 0.6;' : ''}">
+                      <tr style="${isPago ? 'opacity: 0.6;' : ''}" data-id="${l.id}">
                         <td>${year}</td>
                         <td>${month}</td>
                         <td class="font-bold">${l.descricao}</td>
@@ -521,32 +521,43 @@ export class DashboardView {
         const isNewPago = newStatus === 'PAGO';
 
         // 1. ATUALIZAÇÃO OTIMISTA (IMEDIATA)
-        // Funciona tanto na tabela quanto no card mobile
         const elements = container.querySelectorAll(`[data-id="${id}"]`);
         
         elements.forEach(el => {
-          const badge = el.querySelector('.status-indicator');
-          const toggleBtn = el.querySelector('.btn-toggle-status');
-          
-          if (el.tagName === 'TR') {
-            el.style.opacity = isNewPago ? '0.6' : '1';
-          } else if (el.classList.contains('transaction-card')) {
-            el.style.opacity = isNewPago ? '0.7' : '1';
-          }
-          
-          if (badge) {
-            badge.className = `status-indicator ${isNewPago ? 'status-pago' : 'status-pendente'}`;
-            badge.textContent = isNewPago ? 'Pago' : 'Pendente';
-          }
-          
-          if (toggleBtn) {
-            toggleBtn.setAttribute('data-status', newStatus);
-            toggleBtn.className = `btn-toggle-status btn ${isNewPago ? 'btn-ghost' : 'btn-success'}`;
-            toggleBtn.innerHTML = `<i data-lucide="${isNewPago ? 'rotate-ccw' : 'check'}" style="width: 16px; height: 16px;"></i>`;
+          // Se for o container (TR ou Card)
+          if (el.tagName === 'TR' || el.classList.contains('transaction-card')) {
+            el.style.opacity = isNewPago ? (el.tagName === 'TR' ? '0.6' : '0.7') : '1';
+            
+            const badge = el.querySelector('.status-indicator');
+            if (badge) {
+              badge.className = `status-indicator ${isNewPago ? 'status-pago' : 'status-pendente'}`;
+              badge.textContent = isNewPago ? 'Pago' : 'Pendente';
+            }
+            
+            const btnChild = el.querySelector('.btn-toggle-status');
+            if (btnChild) {
+              btnChild.setAttribute('data-status', newStatus);
+              btnChild.className = `btn-toggle-status btn ${isNewPago ? 'btn-ghost' : 'btn-success'}`;
+              btnChild.innerHTML = `<i data-lucide="${isNewPago ? 'rotate-ccw' : 'check'}" style="width: 16px; height: 16px;"></i>`;
+            }
+          } 
+          // Se for o botão isolado (fallback)
+          else if (el.classList.contains('btn-toggle-status')) {
+            el.setAttribute('data-status', newStatus);
+            el.className = `btn-toggle-status btn ${isNewPago ? 'btn-ghost' : 'btn-success'}`;
+            el.innerHTML = `<i data-lucide="${isNewPago ? 'rotate-ccw' : 'check'}" style="width: 16px; height: 16px;"></i>`;
           }
         });
         
-        import('lucide').then(lucide => { lucide.createIcons({ icons: lucide.icons }); });
+        // Renderiza somente os novos ícones sem carregar a lib inteira se já existir
+        if (window.lucide) {
+          window.lucide.createIcons({ icons: window.lucide.icons });
+        } else {
+          import('lucide').then(lucide => { 
+            window.lucide = lucide;
+            lucide.createIcons({ icons: lucide.icons }); 
+          });
+        }
 
         // 2. ATUALIZAÇÃO NO FIREBASE (SEGUNDO PLANO)
         let collectionKey = '';
@@ -555,14 +566,16 @@ export class DashboardView {
         else if (tipo === 'avulsa') collectionKey = KEYS.COMPRAS_AVULSAS;
 
         if (collectionKey) {
-          try {
-            await StorageService.update(collectionKey, { id, status: newStatus });
-            await this.render(container);
-          } catch (error) {
-            alert('Erro ao sincronizar com o banco. Revertendo alteração...');
-            console.error(error);
-            await this.render(container);
-          }
+          // Não damos await no render para não travar a UI
+          StorageService.update(collectionKey, { id, status: newStatus }).then(() => {
+            // Opcional: renderizar após um tempo ou apenas se houver mudanças reais detectadas
+            // Para manter a fluidez, vamos evitar o render completo aqui se o otimista funcionou
+            // mas vamos agendar um pequeno refresh silencioso
+            setTimeout(() => this.render(container), 2000); 
+          }).catch(error => {
+            alert('Erro ao sincronizar. Revertendo...');
+            this.render(container);
+          });
         }
       });
     });

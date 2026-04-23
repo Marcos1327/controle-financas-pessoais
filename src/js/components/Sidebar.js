@@ -4,7 +4,6 @@
  */
 
 import { createIcons, icons } from 'lucide';
-import { StorageService } from '../storage/StorageService.js';
 import { logout, auth } from '../storage/firebase.js';
 
 export function Sidebar(activeRoute) {
@@ -42,19 +41,6 @@ export function Sidebar(activeRoute) {
           </a>
         `).join('')}
       </nav>
-
-      <div class="sidebar-footer">
-        <p class="sidebar-section-title">Dados e Backup</p>
-        <button id="btn-export" class="btn btn-ghost" style="width: 100%; justify-content: flex-start; padding: 10px;">
-          <i data-lucide="download" style="width: 16px; height: 16px;"></i>
-          Exportar JSON
-        </button>
-        <label class="btn btn-ghost" style="width: 100%; justify-content: flex-start; padding: 10px; cursor: pointer;">
-          <i data-lucide="upload" style="width: 16px; height: 16px;"></i>
-          Importar JSON
-          <input type="file" id="input-import" class="hidden" accept=".json">
-        </label>
-      </div>
 
       <div class="user-profile" id="user-profile-trigger" style="flex-direction: column; align-items: flex-start; gap: 12px; padding: 20px; cursor: pointer;">
         <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
@@ -125,32 +111,6 @@ export function Sidebar(activeRoute) {
         await logout();
         window.location.reload();
       }
-    });
-
-    document.getElementById('btn-export')?.addEventListener('click', async () => {
-      await StorageService.exportData();
-    });
-
-    document.getElementById('input-import')?.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const btnText = document.querySelector('#input-import').parentElement;
-        const originalHtml = btnText.innerHTML;
-        btnText.innerHTML = 'Importando...';
-
-        const success = await StorageService.importData(event.target.result);
-        
-        if (success) {
-          alert('Dados importados com sucesso para o banco de dados!');
-          window.location.reload();
-        } else {
-          alert('Erro ao importar arquivo.');
-          btnText.innerHTML = originalHtml;
-        }
-      };
-      reader.readAsText(file);
     });
   }, 0);
 
