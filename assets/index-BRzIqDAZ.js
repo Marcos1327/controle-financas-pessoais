@@ -12454,8 +12454,7 @@ This typically indicates that your device does not have a healthy Internet conne
             max-width: 100% !important;
             box-sizing: border-box !important;
             min-width: 0;
-            -webkit-appearance: none;
-            appearance: none;
+
           }
 
           .modal-overlay.active .modal-content {
