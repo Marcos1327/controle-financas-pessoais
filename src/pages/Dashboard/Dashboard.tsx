@@ -112,7 +112,7 @@ export const Dashboard: React.FC = () => {
   }, [allData, currentYear]);
 
   const filterOptions = useMemo(() => {
-    if (!summary) return { categories: [], payments: [], cards: [], statuses: ['PAGO', 'PENDENTE'] };
+    if (!summary) return { categories: [], payments: [], cards: [], statuses: [{ id: 'PAGO', label: 'Pago' }, { id: 'PENDENTE', label: 'Pendente' }] };
     const lancamentos = summary.lancamentos;
     return {
       categories: [...new Set(lancamentos.map(l => l.categoria).filter(Boolean))].sort().map(c => ({ id: c!, label: c! })),

@@ -31,6 +31,7 @@ export interface Transaction {
   tipo?: TransactionType;
   parcelas?: number;
   parcelaAtual?: number;
+  parcelaVirtual?: number;
   userId: string;
   createdAt: number;
 }
