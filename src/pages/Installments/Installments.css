@@ -2,13 +2,80 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  transition: all 0.3s ease;
+}
+
+.card-finalizado {
+  opacity: 0.8;
+  background-color: #f8fafc;
 }
 
 .card-header-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.card-header-main {
+  flex: 1;
+}
+
+.card-header-side {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.card-value-primary {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.toggle-details-btn {
+  padding: 4px;
+  margin-right: -4px;
+}
+
+.card-details-expanded {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #e2e8f0;
+  animation: slideDown 0.3s ease-out;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detail-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.detail-value {
+  font-size: 13px;
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .item-desc {

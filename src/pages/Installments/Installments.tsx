@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Plus, Trash2, Edit3, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Edit3, AlertTriangle, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { PageHeader } from '../../components/ui/PageHeader/PageHeader';
 import { Modal } from '../../components/ui/Modal/Modal';
 import { CustomDropdown } from '../../components/ui/CustomDropdown/CustomDropdown';
@@ -21,6 +21,11 @@ export const Installments: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<InstallmentDebt | null>(null);
   const [idToDelete, setIdToDelete] = useState<string | null>(null);
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+
+  const toggleCard = (id: string) => {
+    setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const [formData, setFormData] = useState({
     descricao: '',
@@ -216,29 +221,61 @@ export const Installments: React.FC = () => {
 
             {/* Mobile View: Cards */}
             <div className="mobile-only grid-stats">
-              {items.length > 0 ? items.map(item => (
-                <div key={item.id} className="card installment-card">
-                  <div className="card-header-row">
-                    <div>
-                      <h4 className="item-desc">{item.descricao}</h4>
-                      <p className="item-status">{item.status} • {item.parcelaAtual}/{item.parcelas}</p>
-                      <p className="item-status">Início: {item.data ? new Date(item.data + 'T00:00:00').toLocaleDateString('pt-BR') : '-'} • Fim: {getFinalDate(item.data!, item.parcelas!)}</p>
+              {items.length > 0 ? items.map(item => {
+                const isExpanded = expandedCards[item.id];
+                return (
+                  <div key={item.id} className={`card installment-card ${item.status === 'FINALIZADO' ? 'card-finalizado' : ''}`}>
+                    <div className="card-header-row" onClick={() => toggleCard(item.id)}>
+                      <div className="card-header-main">
+                        <h4 className="item-desc">{item.descricao}</h4>
+                        <p className="item-status">
+                          {item.parcelaAtual}/{item.parcelas} parcelas • {item.status}
+                        </p>
+                      </div>
+                      <div className="card-header-side">
+                        <span className="card-value-primary">R$ {Number(item.custoTotal).toFixed(2)}</span>
+                        <div className="toggle-details-btn">
+                          {isExpanded ? <ChevronUp size={20} className="color-primary" /> : <ChevronDown size={20} className="color-primary" />}
+                        </div>
+                      </div>
                     </div>
-                    <span className="badge badge-parcela">R$ {Number(item.valorMensal).toFixed(2)} / mês</span>
-                  </div>
 
-                  <div className="card-footer-actions">
-                    <div className="actions-cell" style={{ width: '100%', justifyContent: 'flex-end' }}>
-                      <button className="btn btn-ghost color-primary" onClick={() => handleOpenModal(item)}>
-                        <Edit3 size={18} />
-                      </button>
-                      <button className="btn btn-danger" onClick={() => { setIdToDelete(item.id); setIsConfirmOpen(true); }}>
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
+                    {isExpanded && (
+                      <div className="card-details-expanded">
+                        <div className="details-grid">
+                          <div className="detail-item">
+                            <span className="detail-label">Data da Compra</span>
+                            <span className="detail-value">{item.data ? new Date(item.data + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}</span>
+                          </div>
+                          <div className="detail-item">
+                            <span className="detail-label">Data de Conclusão</span>
+                            <span className="detail-value">{getFinalDate(item.data!, item.parcelas!)}</span>
+                          </div>
+                          <div className="detail-item">
+                            <span className="detail-label">Parcelas</span>
+                            <span className="detail-value">{item.parcelaAtual} de {item.parcelas}</span>
+                          </div>
+                          <div className="detail-item">
+                            <span className="detail-label">Valor Mensal</span>
+                            <span className="detail-value font-bold text-primary">R$ {Number(item.valorMensal).toFixed(2)}</span>
+                          </div>
+                        </div>
+
+                        <div className="card-footer-actions mt-4 pt-3 border-t">
+                          <div className="actions-cell" style={{ width: '100%', justifyContent: 'flex-end' }}>
+                            <button className="btn btn-ghost color-primary" onClick={(e) => { e.stopPropagation(); handleOpenModal(item); }}>
+                              <Edit3 size={18} />
+                            </button>
+                            <button className="btn btn-danger" onClick={(e) => { e.stopPropagation(); setIdToDelete(item.id); setIsConfirmOpen(true); }}>
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )) : (
+                );
+              }) : (
                 <div className="empty-state">
                    Nenhum parcelamento ativo.
                 </div>
