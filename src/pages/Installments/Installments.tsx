@@ -152,7 +152,7 @@ export const Installments: React.FC = () => {
       />
 
       <div className="content-padding">
-        <button className="btn btn-primary mobile-fab" onClick={() => handleOpenModal()}>
+        <button className="btn btn-primary mobile-fab mobile-only" onClick={() => handleOpenModal()}>
           <Plus size={28} />
         </button>
 

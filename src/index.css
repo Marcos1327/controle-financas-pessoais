@@ -234,14 +234,76 @@ input:focus {
 }
 
 /* Responsive Utilities */
+.mobile-only { display: none !important; }
+.desktop-only { display: block !important; }
+
+@media (max-width: 1024px) {
+  .mobile-only { display: block !important; }
+  .desktop-only { display: none !important; }
+}
+
+.mobile-fab {
+  display: flex !important;
+  position: fixed;
+  bottom: 32px;
+  right: 24px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50% !important;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  border: none !important;
+}
+
 @media (min-width: 1025px) {
-  .mobile-only { display: none !important; }
+  .mobile-fab { display: none !important; }
 }
 
 @media (max-width: 1024px) {
-  .desktop-only { display: none !important; }
+  /* On mobile, we force the sidebar to be full-width and show all details, ignoring the "collapsed" state used on desktop */
+  .sidebar.collapsed {
+    width: 260px !important;
+  }
+  
+  .sidebar.collapsed .sidebar-header {
+    justify-content: space-between !important;
+    padding: 24px !important;
+  }
+
+  .sidebar.collapsed .sidebar-link span,
+  .sidebar.collapsed .sidebar-logo-container,
+  .sidebar.collapsed .user-text,
+  .sidebar.collapsed .profile-arrow,
+  .sidebar.collapsed .btn-logout span {
+    display: block !important;
+  }
 }
 
 .text-right { text-align: right; }
 .font-bold { font-weight: 700; }
 .hidden { display: none !important; }
+
+/* Modal Action Stack */
+.modal-actions-stack {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btn-full {
+  flex: 1;
+  justify-content: center;
+}
+
+@media (max-width: 1024px) {
+  .modal-actions-stack {
+    flex-direction: column;
+  }
+  
+  .btn-full {
+    width: 100%;
+  }
+}
