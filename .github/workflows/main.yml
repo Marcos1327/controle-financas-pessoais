@@ -1,0 +1,40 @@
+name: CI & CD - Finanças Pro
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies 🔧
+        run: npm install
+
+      - name: Check Lint 🔍
+        run: npm run lint
+
+      - name: Build Application 🏗️
+        run: npm run build
+
+      # Este job só roda o Deploy se o Build e o Lint passarem E for um push na main
+      - name: Deploy to GitHub Pages 🚀
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: dist # Pasta que o Vite gera
+          branch: gh-pages # Branch onde o site vai morar
