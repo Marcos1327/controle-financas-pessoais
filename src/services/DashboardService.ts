@@ -17,23 +17,17 @@ export const DashboardService = {
     let allLancamentos: Transaction[] = [];
 
     months.forEach(my => {
+      const [vYear, vMonth] = my.split('-').map(Number);
+      
       const activeFixas = fixas;
       const activeParceladas = parceladas.filter((p: any) => {
         if (!p.data) return false;
-
         const [pYear, pMonth] = p.data.split('-').map(Number);
-        const [vYear, vMonth] = my.split('-').map(Number);
-        
         const diff = (vYear * 12 + vMonth) - (pYear * 12 + pMonth);
-
-        // Regra: Começa no mês seguinte (diff >= 1) e termina no mês da última parcela (diff <= parcelas)
         return diff >= 1 && diff <= Number(p.parcelas);
       }).map((p: any) => {
         const [pYear, pMonth] = p.data.split('-').map(Number);
-        const [vYear, vMonth] = my.split('-').map(Number);
         const diff = (vYear * 12 + vMonth) - (pYear * 12 + pMonth);
-        
-        // Determina status virtual com base na parcelaAtual do registro global
         const isPaidInThisMonth = (p.parcelaAtual || 0) >= diff;
         
         return { 
@@ -45,11 +39,11 @@ export const DashboardService = {
         };
       });
 
-      const activeAvulsas = avulsas.filter((a: any) => a.data.startsWith(my));
+      const activeAvulsas = avulsas.filter((a: any) => a.data && a.data.startsWith(my));
 
-      totalFixas += activeFixas.reduce((acc: number, current: any) => acc + Number(current.valorMensal), 0);
-      totalParceladas += activeParceladas.reduce((acc: number, current: any) => acc + Number(current.valorMensal), 0);
-      totalAvulsas += activeAvulsas.reduce((acc: number, current: any) => acc + Number(current.valor), 0);
+      totalFixas += activeFixas.reduce((acc: number, current: any) => acc + (Number(current.valorMensal) || 0), 0);
+      totalParceladas += activeParceladas.reduce((acc: number, current: any) => acc + (Number(current.valorMensal) || 0), 0);
+      totalAvulsas += activeAvulsas.reduce((acc: number, current: any) => acc + (Number(current.valor) || 0), 0);
 
       allLancamentos.push(
         ...activeFixas.map((f: any) => ({ ...f, tipo: 'fixa' as const, dataRef: my })),

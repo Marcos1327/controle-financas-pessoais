@@ -5,10 +5,12 @@ import { PageHeader } from '../../components/ui/PageHeader/PageHeader';
 import { CustomDropdown } from '../../components/ui/CustomDropdown/CustomDropdown';
 import { DashboardService } from '../../services/DashboardService';
 import { StorageService, KEYS } from '../../services/StorageService';
+import { useAuth } from '../../contexts/AuthContext';
 import { Transaction, DashboardSummary } from '../../types';
 import './Dashboard.css';
 
 export const Dashboard: React.FC = () => {
+  const { user } = useAuth();
   const { setIsSidebarVisible } = useOutletContext<{ setIsSidebarVisible: (v: boolean) => void }>();
   
   // States
@@ -28,27 +30,45 @@ export const Dashboard: React.FC = () => {
   const [showSecondaryStatsMobile, setShowSecondaryStatsMobile] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
 
-  // Fetch initial data
+  // Fetch initial data with real-time listeners
   useEffect(() => {
-    const fetchData = async () => {
-      const data = await DashboardService.getAllData();
-      setAllData(data);
+    if (!user) return;
+
+    const unsubFixas = StorageService.subscribe(KEYS.DIVIDAS_FIXAS, (data) => {
+      setAllData((prev: any) => ({ ...prev, fixas: data }));
+    });
+    const unsubParceladas = StorageService.subscribe(KEYS.DIVIDAS_PARCELADAS, (data) => {
+      setAllData((prev: any) => ({ ...prev, parceladas: data }));
+    });
+    const unsubAvulsas = StorageService.subscribe(KEYS.COMPRAS_AVULSAS, (data) => {
+      setAllData((prev: any) => ({ ...prev, avulsas: data }));
+    });
+
+    return () => {
+      unsubFixas();
+      unsubParceladas();
+      unsubAvulsas();
     };
-    fetchData();
-  }, []);
+  }, [user]);
 
   // Update summary when data or period filters change
   useEffect(() => {
+    if (!allData || !user) return;
+    
     const updateSummary = async () => {
-      if (!allData) return;
-      setLoading(true);
-      const selectedMonthsPaths = filters.meses.map(m => `${currentYear}-${m}`);
-      const res = await DashboardService.getMonthlySummary(selectedMonthsPaths, allData);
-      setSummary(res);
-      setLoading(false);
+      try {
+        setLoading(true);
+        const selectedMonthsPaths = filters.meses.map(m => `${currentYear}-${m}`);
+        const res = await DashboardService.getMonthlySummary(selectedMonthsPaths, allData);
+        setSummary(res);
+      } catch (err) {
+        console.error("Error updating summary:", err);
+      } finally {
+        setLoading(false);
+      }
     };
     updateSummary();
-  }, [allData, currentYear, filters.meses]);
+  }, [allData, currentYear, filters.meses, user]);
 
   // Derived Values
   const availableYears = useMemo(() => {
@@ -174,17 +194,11 @@ export const Dashboard: React.FC = () => {
       setAllData(updatedData);
     }
 
+    // Atualização do Firestore
     try {
       await StorageService.update(key, updatedItem);
-      
-      // Sincronização em segundo plano
-      const data = await DashboardService.getAllData();
-      setAllData(data);
     } catch (e) {
       console.error("Erro ao atualizar status:", e);
-      // Reverte o estado em caso de erro
-      const data = await DashboardService.getAllData();
-      setAllData(data);
     }
   };
 

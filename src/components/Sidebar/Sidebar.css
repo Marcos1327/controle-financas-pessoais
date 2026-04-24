@@ -216,9 +216,24 @@
   .sidebar {
     position: fixed;
     transform: translateX(-100%);
-    width: 260px !important;
+    width: 280px !important;
   }
+  
   .sidebar.active {
     transform: translateX(0);
+  }
+
+  /* Force visibility on mobile regardless of collapsed state */
+  .sidebar .sidebar-link span,
+  .sidebar .sidebar-logo-container,
+  .sidebar .user-text,
+  .sidebar .profile-arrow,
+  .sidebar .btn-logout span {
+    display: block !important;
+  }
+
+  .sidebar .sidebar-header {
+    justify-content: space-between !important;
+    padding: 24px !important;
   }
 }

@@ -8,7 +8,8 @@ import {
   setDoc,
   query,
   where,
-  DocumentData
+  DocumentData,
+  onSnapshot
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { Transaction } from '../types';
@@ -40,18 +41,43 @@ export const FirebaseService = {
         id: doc.id 
       }));
 
-      return items.sort((a: any, b: any) => {
-        if (a.data && b.data) {
-          return b.data.localeCompare(a.data);
-        }
-        const timeA = a.createdAt || 0;
-        const timeB = b.createdAt || 0;
-        return timeB - timeA;
-      });
+      return FirebaseService.sortItems(items);
     } catch (e) {
       console.error(`Erro ao ler coleção ${colName}`, e);
       return [];
     }
+  },
+
+  /**
+   * Escuta mudanças em tempo real para uma coleção
+   */
+  subscribe: (storageKey: string, callback: (items: any[]) => void) => {
+    const colName = COLLECTION_MAP[storageKey];
+    const user = auth.currentUser;
+    if (!colName || !user) return () => {};
+
+    const q = query(collection(db, colName), where("userId", "==", user.uid));
+    
+    return onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({ 
+        ...doc.data(), 
+        id: doc.id 
+      }));
+      callback(FirebaseService.sortItems(items));
+    }, (error) => {
+      console.error(`Erro no listener da coleção ${colName}`, error);
+    });
+  },
+
+  sortItems: (items: any[]) => {
+    return items.sort((a: any, b: any) => {
+      if (a.nome && b.nome) {
+        return a.nome.localeCompare(b.nome);
+      }
+      const timeA = a.createdAt || 0;
+      const timeB = b.createdAt || 0;
+      return timeB - timeA;
+    });
   },
 
   /**

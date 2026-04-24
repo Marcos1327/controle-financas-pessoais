@@ -5,6 +5,7 @@ import { PageHeader } from '../../components/ui/PageHeader/PageHeader';
 import { Modal } from '../../components/ui/Modal/Modal';
 import { CustomDropdown } from '../../components/ui/CustomDropdown/CustomDropdown';
 import { StorageService, KEYS } from '../../services/StorageService';
+import { useAuth } from '../../contexts/AuthContext';
 import { Transaction, Category, Card } from '../../types';
 import './GenericList.css';
 
@@ -14,6 +15,7 @@ interface GenericListProps {
 }
 
 export const GenericList: React.FC<GenericListProps> = ({ title, storageKey }) => {
+  const { user } = useAuth();
   const { setIsSidebarVisible } = useOutletContext<{ setIsSidebarVisible: (v: boolean) => void }>();
   const [items, setItems] = useState<any[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -38,22 +40,35 @@ export const GenericList: React.FC<GenericListProps> = ({ title, storageKey }) =
   const isSpecial = storageKey === KEYS.CATEGORIAS || storageKey === KEYS.CARTOES;
   const isAvulsa = storageKey === KEYS.COMPRAS_AVULSAS;
 
-  const fetchData = async () => {
-    setLoading(true);
-    const [resItems, resCats, resCards] = await Promise.all([
-      StorageService.getAll(storageKey),
-      StorageService.getAll(KEYS.CATEGORIAS),
-      StorageService.getAll(KEYS.CARTOES)
-    ]);
-    setItems(resItems);
-    setCategories(resCats);
-    setCards(resCards);
-    setLoading(false);
-  };
-
   useEffect(() => {
-    fetchData();
-  }, [storageKey]);
+    if (!user) return;
+
+    setLoading(true);
+    
+    // Fallback loading safety
+    const timer = setTimeout(() => setLoading(false), 5000);
+
+    const unsubItems = StorageService.subscribe(storageKey, (data) => {
+      setItems(data);
+      setLoading(false);
+      clearTimeout(timer);
+    });
+
+    const unsubCats = StorageService.subscribe(KEYS.CATEGORIAS, (data) => {
+      setCategories(data);
+    });
+
+    const unsubCards = StorageService.subscribe(KEYS.CARTOES, (data) => {
+      setCards(data);
+    });
+
+    return () => {
+      unsubItems();
+      unsubCats();
+      unsubCards();
+      clearTimeout(timer);
+    };
+  }, [storageKey, user]);
 
   const handleOpenModal = (item: any = null) => {
     if (item) {
@@ -102,7 +117,6 @@ export const GenericList: React.FC<GenericListProps> = ({ title, storageKey }) =
     }
 
     setIsModalOpen(false);
-    fetchData();
   };
 
   const handleDelete = async () => {
@@ -110,7 +124,6 @@ export const GenericList: React.FC<GenericListProps> = ({ title, storageKey }) =
       await StorageService.remove(storageKey, idToDelete);
       setIsConfirmOpen(false);
       setIdToDelete(null);
-      fetchData();
     }
   };
 

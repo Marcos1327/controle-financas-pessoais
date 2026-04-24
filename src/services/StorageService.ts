@@ -11,6 +11,7 @@ export const KEYS = {
 
 export const StorageService = {
   getAll: async (key: string) => FirebaseService.getAll(key),
+  subscribe: (key: string, callback: (items: any[]) => void) => FirebaseService.subscribe(key, callback),
   add: async (key: string, item: any) => FirebaseService.add(key, item),
   remove: async (key: string, id: string) => FirebaseService.remove(key, id),
   update: async (key: string, updatedItem: any) => FirebaseService.update(key, updatedItem),

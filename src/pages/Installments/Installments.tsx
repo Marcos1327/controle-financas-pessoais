@@ -5,10 +5,12 @@ import { PageHeader } from '../../components/ui/PageHeader/PageHeader';
 import { Modal } from '../../components/ui/Modal/Modal';
 import { CustomDropdown } from '../../components/ui/CustomDropdown/CustomDropdown';
 import { StorageService, KEYS } from '../../services/StorageService';
+import { useAuth } from '../../contexts/AuthContext';
 import { InstallmentDebt, Category, Card as CardType } from '../../types';
 import './Installments.css';
 
 export const Installments: React.FC = () => {
+  const { user } = useAuth();
   const { setIsSidebarVisible } = useOutletContext<{ setIsSidebarVisible: (v: boolean) => void }>();
   const [items, setItems] = useState<InstallmentDebt[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -38,22 +40,30 @@ export const Installments: React.FC = () => {
     return date.toLocaleDateString('pt-BR');
   };
 
-  const fetchData = async () => {
-    setLoading(true);
-    const [resItems, resCats, resCards] = await Promise.all([
-      StorageService.getAll(KEYS.DIVIDAS_PARCELADAS),
-      StorageService.getAll(KEYS.CATEGORIAS),
-      StorageService.getAll(KEYS.CARTOES)
-    ]);
-    setItems(resItems);
-    setCategories(resCats);
-    setCards(resCards);
-    setLoading(false);
-  };
-
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (!user) return;
+
+    setLoading(true);
+    
+    const unsubItems = StorageService.subscribe(KEYS.DIVIDAS_PARCELADAS, (data) => {
+      setItems(data);
+      setLoading(false);
+    });
+
+    const unsubCats = StorageService.subscribe(KEYS.CATEGORIAS, (data) => {
+      setCategories(data);
+    });
+
+    const unsubCards = StorageService.subscribe(KEYS.CARTOES, (data) => {
+      setCards(data);
+    });
+
+    return () => {
+      unsubItems();
+      unsubCats();
+      unsubCards();
+    };
+  }, [user]);
 
   const handleOpenModal = (item: InstallmentDebt | null = null) => {
     if (item) {
@@ -114,7 +124,6 @@ export const Installments: React.FC = () => {
     }
 
     setIsModalOpen(false);
-    fetchData();
   };
 
   const handleIncrement = async (item: InstallmentDebt) => {
@@ -126,7 +135,6 @@ export const Installments: React.FC = () => {
       parcelaAtual: isFinished ? item.parcelas : nextParcela,
       status: isFinished ? 'FINALIZADO' : 'ATIVO'
     });
-    fetchData();
   };
 
   const handleDelete = async () => {
@@ -134,7 +142,6 @@ export const Installments: React.FC = () => {
       await StorageService.remove(KEYS.DIVIDAS_PARCELADAS, idToDelete);
       setIsConfirmOpen(false);
       setIdToDelete(null);
-      fetchData();
     }
   };
 
