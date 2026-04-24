@@ -229,7 +229,7 @@ export const Installments: React.FC = () => {
                       <div className="card-header-main">
                         <h4 className="item-desc">{item.descricao}</h4>
                         <p className="item-status">
-                          {item.parcelaAtual}/{item.parcelas} parcelas • {item.status}
+                          {item.parcelaAtual}/{item.parcelas} parcelas {item.status}
                         </p>
                       </div>
                       <div className="card-header-side">
@@ -261,7 +261,7 @@ export const Installments: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="card-footer-actions mt-4 pt-3 border-t">
+                        <div className="card-footer-actions mt-4 pt-3">
                           <div className="actions-cell" style={{ width: '100%', justifyContent: 'flex-end' }}>
                             <button className="btn btn-ghost color-primary" onClick={(e) => { e.stopPropagation(); handleOpenModal(item); }}>
                               <Edit3 size={18} />
