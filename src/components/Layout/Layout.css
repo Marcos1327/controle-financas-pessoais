@@ -1,0 +1,23 @@
+.layout-container {
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.mobile-header-placeholder {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .mobile-header-placeholder {
+    display: block;
+    height: 0; /* Apenas placeholder, o header real está nas páginas */
+  }
+}

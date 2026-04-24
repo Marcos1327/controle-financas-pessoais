@@ -4,10 +4,11 @@ import {
   signInWithPopup, 
   GoogleAuthProvider, 
   signOut,
-  onAuthStateChanged 
+  onAuthStateChanged,
+  User
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import firebaseConfig from '../../../firebase-applet-config.json';
+import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
@@ -16,5 +17,4 @@ const provider = new GoogleAuthProvider();
 
 export const loginWithGoogle = () => signInWithPopup(auth, provider);
 export const logout = () => signOut(auth);
-export const watchAuthState = (callback) => onAuthStateChanged(auth, callback);
-
+export const watchAuthState = (callback: (user: User | null) => void) => onAuthStateChanged(auth, callback);

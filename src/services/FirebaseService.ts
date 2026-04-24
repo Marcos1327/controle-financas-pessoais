@@ -7,12 +7,14 @@ import {
   updateDoc, 
   setDoc,
   query,
-  where
+  where,
+  DocumentData
 } from 'firebase/firestore';
-import { db, auth } from './firebase.js';
+import { db, auth } from './firebase';
+import { Transaction } from '../types';
 
-// Mapeamento das chaves do localStorage para coleções do Firestore
-const COLLECTION_MAP = {
+// Mapeamento das chaves do storage para coleções do Firestore
+export const COLLECTION_MAP: Record<string, string> = {
   'fp_categorias': 'categorias',
   'fp_cartoes': 'cartoes',
   'fp_dividas_fixas': 'dividas_fixas',
@@ -25,7 +27,7 @@ export const FirebaseService = {
   /**
    * Retorna todos os itens de uma coleção FILTRADOS POR USUÁRIO E ORDENADOS
    */
-  getAll: async (storageKey) => {
+  getAll: async (storageKey: string): Promise<any[]> => {
     const colName = COLLECTION_MAP[storageKey];
     const user = auth.currentUser;
     if (!colName || !user) return [];
@@ -38,10 +40,7 @@ export const FirebaseService = {
         id: doc.id 
       }));
 
-      // Ordenação Inteligente no Cliente (evita necessidade de criar índices no Firebase)
-      // 1. Prioridade para compras que têm o campo "data" (YYYY-MM-DD), mais recentes primeiro
-      // 2. Fallback para a data em que o registro foi criado no sistema
-      return items.sort((a, b) => {
+      return items.sort((a: any, b: any) => {
         if (a.data && b.data) {
           return b.data.localeCompare(a.data);
         }
@@ -58,7 +57,7 @@ export const FirebaseService = {
   /**
    * Adiciona um item com o ID do usuário e timestamp
    */
-  add: async (storageKey, item) => {
+  add: async (storageKey: string, item: any): Promise<void> => {
     const colName = COLLECTION_MAP[storageKey];
     const user = auth.currentUser;
     if (!colName || !user) return;
@@ -68,7 +67,7 @@ export const FirebaseService = {
       const dataWithUser = { 
         ...data, 
         userId: user.uid,
-        createdAt: Date.now() // Timestamp de criação
+        createdAt: Date.now()
       };
       
       if (id) {
@@ -84,7 +83,7 @@ export const FirebaseService = {
   /**
    * Remove um item
    */
-  remove: async (storageKey, id) => {
+  remove: async (storageKey: string, id: string): Promise<void> => {
     const colName = COLLECTION_MAP[storageKey];
     if (!colName) return;
 
@@ -96,9 +95,9 @@ export const FirebaseService = {
   },
 
   /**
-   * Atualiza um item garantindo que o userId seja mantido
+   * Atualiza um item
    */
-  update: async (storageKey, item) => {
+  update: async (storageKey: string, item: any): Promise<void> => {
     const colName = COLLECTION_MAP[storageKey];
     const user = auth.currentUser;
     if (!colName || !user) return;
@@ -110,10 +109,10 @@ export const FirebaseService = {
       const dataWithUser = { 
         ...data, 
         userId: user.uid,
-        updatedAt: Date.now() // Timestamp da última atualização
+        updatedAt: Date.now()
       };
       const docRef = doc(db, colName, id);
-      await updateDoc(docRef, dataWithUser);
+      await updateDoc(docRef, dataWithUser as DocumentData);
     } catch (e) {
       console.error(`Erro ao atualizar em ${colName}`, e);
     }

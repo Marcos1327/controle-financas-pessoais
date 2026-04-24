@@ -1,11 +1,5 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
+import { FirebaseService } from './FirebaseService';
 
-import { FirebaseService } from './FirebaseService.js';
-
-// Chaves utilizadas no localStorage conforme definido no PRD
 export const KEYS = {
   CATEGORIAS: 'fp_categorias',
   CARTOES: 'fp_cartoes',
@@ -16,39 +10,13 @@ export const KEYS = {
 };
 
 export const StorageService = {
-  /**
-   * Retorna todos os itens de uma coleção
-   */
-  getAll: async (key) => {
-    return await FirebaseService.getAll(key);
-  },
+  getAll: async (key: string) => FirebaseService.getAll(key),
+  add: async (key: string, item: any) => FirebaseService.add(key, item),
+  remove: async (key: string, id: string) => FirebaseService.remove(key, id),
+  update: async (key: string, updatedItem: any) => FirebaseService.update(key, updatedItem),
 
-  /**
-   * Adiciona um item a uma coleção
-   */
-  add: async (key, item) => {
-    await FirebaseService.add(key, item);
-  },
-
-  /**
-   * Remove um item pelo ID
-   */
-  remove: async (key, id) => {
-    await FirebaseService.remove(key, id);
-  },
-
-  /**
-   * Atualiza um item
-   */
-  update: async (key, updatedItem) => {
-    await FirebaseService.update(key, updatedItem);
-  },
-
-  /**
-   * EXPORTAÇÃO: Gera um arquivo JSON com todos os dados do sistema
-   */
   exportData: async () => {
-    const backup = {};
+    const backup: Record<string, any> = {};
     for (const key of Object.values(KEYS)) {
       backup[key] = await StorageService.getAll(key);
     }
@@ -64,15 +32,11 @@ export const StorageService = {
     linkElement.click();
   },
 
-  /**
-   * IMPORTAÇÃO: Carrega dados de um arquivo JSON para o Firebase
-   */
-  importData: async (jsonData) => {
+  importData: async (jsonData: string) => {
     try {
       const data = JSON.parse(jsonData);
       for (const [key, value] of Object.entries(data)) {
         if (Object.values(KEYS).includes(key) && Array.isArray(value)) {
-          // Para cada item no JSON, adicionamos ao Firebase
           for (const item of value) {
             await StorageService.add(key, item);
           }
