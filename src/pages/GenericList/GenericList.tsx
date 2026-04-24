@@ -270,14 +270,14 @@ export const GenericList: React.FC<GenericListProps> = ({ title, storageKey }) =
                   </div>
                 )}
               </div>
-              <div className="form-group">
-                <CustomDropdown 
-                  label="Categoria"
-                  options={categories.map(c => ({ id: c.nome, label: c.nome }))}
-                  selectedValues={formData.categoria ? [formData.categoria] : []}
-                  onChange={vals => setFormData(p => ({ ...p, categoria: vals[0] || '' }))}
-                />
-              </div>
+              
+              <CustomDropdown 
+                label="Categoria"
+                options={categories.map(c => ({ id: c.nome, label: c.nome }))}
+                selectedValues={formData.categoria ? [formData.categoria] : []}
+                onChange={vals => setFormData(p => ({ ...p, categoria: vals[0] || '' }))}
+              />
+              
               <div className="grid-2-cols">
                 <CustomDropdown 
                   label="Pagamento"
