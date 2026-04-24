@@ -17,20 +17,44 @@ export const DashboardService = {
     let allLancamentos: Transaction[] = [];
 
     months.forEach(my => {
-      totalFixas += fixas.reduce((acc: number, current: any) => acc + Number(current.valorMensal), 0);
+      const activeFixas = fixas;
+      const activeParceladas = parceladas.filter((p: any) => {
+        if (!p.data) return false;
 
-      totalParceladas += parceladas
-        .filter((p: any) => p.status === 'ATIVO' || p.status === 'PAGO' || p.status === 'PENDENTE')
-        .reduce((acc: number, current: any) => acc + Number(current.valorMensal), 0);
+        const [pYear, pMonth] = p.data.split('-').map(Number);
+        const [vYear, vMonth] = my.split('-').map(Number);
+        
+        const diff = (vYear * 12 + vMonth) - (pYear * 12 + pMonth);
 
-      totalAvulsas += avulsas
-        .filter((a: any) => a.data.startsWith(my))
-        .reduce((acc: number, current: any) => acc + Number(current.valor), 0);
+        // Regra: Começa no mês seguinte (diff >= 1) e termina no mês da última parcela (diff <= parcelas)
+        return diff >= 1 && diff <= Number(p.parcelas);
+      }).map((p: any) => {
+        const [pYear, pMonth] = p.data.split('-').map(Number);
+        const [vYear, vMonth] = my.split('-').map(Number);
+        const diff = (vYear * 12 + vMonth) - (pYear * 12 + pMonth);
+        
+        // Determina status virtual com base na parcelaAtual do registro global
+        const isPaidInThisMonth = (p.parcelaAtual || 0) >= diff;
+        
+        return { 
+          ...p, 
+          tipo: 'parcelada' as const, 
+          dataRef: my, 
+          status: isPaidInThisMonth ? 'PAGO' : 'PENDENTE',
+          parcelaVirtual: diff
+        };
+      });
+
+      const activeAvulsas = avulsas.filter((a: any) => a.data.startsWith(my));
+
+      totalFixas += activeFixas.reduce((acc: number, current: any) => acc + Number(current.valorMensal), 0);
+      totalParceladas += activeParceladas.reduce((acc: number, current: any) => acc + Number(current.valorMensal), 0);
+      totalAvulsas += activeAvulsas.reduce((acc: number, current: any) => acc + Number(current.valor), 0);
 
       allLancamentos.push(
-        ...fixas.map((f: any) => ({ ...f, tipo: 'fixa' as const, dataRef: my })),
-        ...parceladas.filter((p: any) => p.status === 'ATIVO' || p.status === 'PAGO' || p.status === 'PENDENTE').map((p: any) => ({ ...p, tipo: 'parcelada' as const, dataRef: my })),
-        ...avulsas.filter((a: any) => a.data.startsWith(my)).map((a: any) => ({ ...a, tipo: 'avulsa' as const, dataRef: my }))
+        ...activeFixas.map((f: any) => ({ ...f, tipo: 'fixa' as const, dataRef: my })),
+        ...activeParceladas,
+        ...activeAvulsas.map((a: any) => ({ ...a, tipo: 'avulsa' as const, dataRef: my }))
       );
     });
 

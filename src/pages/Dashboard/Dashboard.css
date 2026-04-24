@@ -57,6 +57,10 @@
   color: white;
 }
 
+.filter-bar .filter-group {
+  flex: 1 1 150px;
+}
+
 @media (min-width: 1025px) {
   .grid-stats {
     grid-template-columns: repeat(4, 1fr);

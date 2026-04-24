@@ -53,30 +53,62 @@ export const Dashboard: React.FC = () => {
   // Derived Values
   const availableYears = useMemo(() => {
     if (!allData) return [new Date().getFullYear().toString()];
-    const years = allData.avulsas.map((a: any) => a.data.split('-')[0]);
-    return [...new Set([new Date().getFullYear().toString(), ...years])].sort((a: any, b: any) => b - a);
+    const yearsSet = new Set<string>();
+    yearsSet.add(new Date().getFullYear().toString());
+
+    allData.avulsas.forEach((a: any) => {
+      if (a.data) yearsSet.add(a.data.split('-')[0]);
+    });
+    
+    allData.parceladas.forEach((p: any) => {
+      if (!p.data) return;
+      const [pYear, pMonth] = p.data.split('-').map(Number);
+      const totalParcelas = Number(p.parcelas);
+      const endDate = new Date(pYear, (pMonth - 1) + totalParcelas, 1);
+      
+      for (let y = pYear; y <= endDate.getFullYear(); y++) {
+        yearsSet.add(String(y));
+      }
+    });
+
+    return Array.from(yearsSet).sort((a, b) => Number(b) - Number(a));
   }, [allData]);
 
   const availableMonths = useMemo(() => {
     if (!allData) return [];
-    const months = [];
-    const currentYearNum = new Date().getFullYear().toString();
-    const currentMonthNum = new Date().getMonth() + 1;
+    const monthsSet = new Set<string>();
     
-    const hasGlobalDebts = allData.fixas.length > 0 || allData.parceladas.some((p: any) => p.status === 'ATIVO');
-    
-    for (let m = 1; m <= 12; m++) {
-      const mStr = String(m).padStart(2, '0');
-      const mPath = `${currentYear}-${mStr}`;
-      const hasAvulsas = allData.avulsas.some((a: any) => a.data.startsWith(mPath));
-      
-      let isAvailable = false;
-      if (hasAvulsas) isAvailable = true;
-      else if (hasGlobalDebts && (currentYear < currentYearNum || (currentYear === currentYearNum && m <= currentMonthNum))) isAvailable = true;
-      
-      if (isAvailable) months.push(mStr);
+    // 1. Avulsas
+    allData.avulsas.forEach((a: any) => {
+      if (!a.data) return;
+      const [year, month] = a.data.split('-');
+      if (year === currentYear) monthsSet.add(month);
+    });
+
+    // 2. Fixas (sempre mostram no mês atual se o ano for o atual)
+    const now = new Date();
+    const nowYear = now.getFullYear().toString();
+    const nowMonth = String(now.getMonth() + 1).padStart(2, '0');
+    if (allData.fixas.length > 0 && currentYear === nowYear) {
+      monthsSet.add(nowMonth);
     }
-    return months;
+
+    // 3. Parceladas
+    allData.parceladas.forEach((p: any) => {
+      if (!p.data) return;
+      const [pYear, pMonth] = p.data.split('-').map(Number);
+      const totalParcelas = Number(p.parcelas);
+      
+      // Itera em cada parcela (começando no mês seguinte à compra)
+      for (let i = 1; i <= totalParcelas; i++) {
+        const d = new Date(pYear, (pMonth - 1) + i, 1);
+        if (d.getFullYear().toString() === currentYear) {
+          monthsSet.add(String(d.getMonth() + 1).padStart(2, '0'));
+        }
+      }
+    });
+
+    return Array.from(monthsSet).sort((a, b) => Number(a) - Number(b));
   }, [allData, currentYear]);
 
   const filterOptions = useMemo(() => {
@@ -108,24 +140,42 @@ export const Dashboard: React.FC = () => {
     const isPago = item.status === 'PAGO';
     const newStatus = isPago ? 'PENDENTE' : 'PAGO';
     
-    // Atualização Otimista: Muda o estado local instantaneamente
+    // Determine target collection
+    let key = '';
+    let updatedItem = { ...item, status: newStatus };
+
+    if (item.tipo === 'fixa') key = KEYS.DIVIDAS_FIXAS;
+    else if (item.tipo === 'parcelada') {
+      key = KEYS.DIVIDAS_PARCELADAS;
+      // Para parceladas, o Dashboard exibe um status virtual.
+      // Clicar em "Pagar" incrementa a parcelaAtual global.
+      // Clicar em "Estornar" decrementa a parcelaAtual global.
+      if (newStatus === 'PAGO' && !isPago) {
+        updatedItem.parcelaAtual = (item.parcelaAtual || 0) + 1;
+        if (updatedItem.parcelaAtual >= (item.parcelas || 0)) {
+          updatedItem.status = 'FINALIZADO';
+        } else {
+          updatedItem.status = 'ATIVO';
+        }
+      } else if (newStatus === 'PENDENTE' && isPago) {
+        updatedItem.parcelaAtual = Math.max(0, (item.parcelaAtual || 0) - 1);
+        updatedItem.status = 'ATIVO';
+      }
+    }
+    else if (item.tipo === 'avulsa') key = KEYS.COMPRAS_AVULSAS;
+
+    // Atualização Otimista aprimorada
     if (allData) {
       const updatedData = { ...allData };
       const listKey = item.tipo === 'fixa' ? 'fixas' : item.tipo === 'parcelada' ? 'parceladas' : 'avulsas';
       updatedData[listKey] = updatedData[listKey].map((i: any) => 
-        i.id === item.id ? { ...i, status: newStatus } : i
+        i.id === item.id ? { ...i, ...updatedItem } : i
       );
       setAllData(updatedData);
     }
-    
-    // Determine target collection
-    let key = '';
-    if (item.tipo === 'fixa') key = KEYS.DIVIDAS_FIXAS;
-    else if (item.tipo === 'parcelada') key = KEYS.DIVIDAS_PARCELADAS;
-    else if (item.tipo === 'avulsa') key = KEYS.COMPRAS_AVULSAS;
 
     try {
-      await StorageService.update(key, { ...item, status: newStatus });
+      await StorageService.update(key, updatedItem);
       
       // Sincronização em segundo plano
       const data = await DashboardService.getAllData();
@@ -282,7 +332,7 @@ export const Dashboard: React.FC = () => {
                       <td>{l.categoria || '-'}</td>
                       <td>{l.formaPagamento || '-'}</td>
                       <td>{l.cartao || '-'}</td>
-                      <td>{l.parcelaAtual ? `${l.parcelaAtual}/${l.parcelas}` : '-'}</td>
+                      <td>{l.parcelaVirtual ? `${l.parcelaVirtual}/${l.parcelas}` : l.parcelaAtual ? `${l.parcelaAtual}/${l.parcelas}` : '-'}</td>
                       <td>
                         <span className={`status-indicator ${isPago ? 'status-pago' : 'status-pendente'}`}>
                           {isPago ? 'Pago' : 'Pendente'}
@@ -350,7 +400,7 @@ export const Dashboard: React.FC = () => {
                       </div>
                       <div className="detail-row">
                         <span className="detail-label">Parcela</span>
-                        <span className="detail-val">{l.parcelaAtual ? `${l.parcelaAtual}/${l.parcelas}` : 'À vista'}</span>
+                        <span className="detail-val">{l.parcelaVirtual ? `${l.parcelaVirtual}/${l.parcelas}` : l.parcelaAtual ? `${l.parcelaAtual}/${l.parcelas}` : 'À vista'}</span>
                       </div>
                     </div>
                   )}

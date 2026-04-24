@@ -51,7 +51,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isVisible, onClose }) => {
       <aside className={`sidebar ${collapsed ? 'collapsed' : ''} ${isVisible ? 'active' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo-container">
-            <div className="logo-box">F</div>
             <h1>Finanças Pro</h1>
           </div>
           <button className="btn-collapse desktop-only" onClick={toggleCollapse}>

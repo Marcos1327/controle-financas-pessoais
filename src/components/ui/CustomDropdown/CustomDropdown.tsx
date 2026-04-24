@@ -73,6 +73,7 @@ export const CustomDropdown: React.FC<CustomDropdownProps> = ({
       {label && <label className="filter-label">{label}</label>}
       <div className="custom-dropdown">
         <button 
+          type="button"
           className={`dropdown-trigger ${isOpen ? 'active' : ''}`}
           onClick={() => setIsOpen(!isOpen)}
         >

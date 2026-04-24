@@ -52,6 +52,52 @@
   border-top: 1px solid #f1f5f9;
 }
 
+.table-progress-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.table-progress-cell .progress-container {
+  flex: 0 0 80px;
+}
+
+.progress-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.actions-cell {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.row-pago {
+  background-color: rgba(34, 197, 94, 0.03);
+}
+
+.row-pago td {
+  color: #94a3b8;
+}
+
+.confirm-content {
+  text-align: center;
+  padding: 10px 0;
+}
+
+.confirm-icon {
+  color: var(--danger);
+  margin-bottom: 16px;
+}
+
+.confirm-content p {
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
 .empty-state {
   grid-column: 1 / -1;
   padding: 64px;
