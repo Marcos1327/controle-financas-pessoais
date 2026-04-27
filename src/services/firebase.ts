@@ -19,7 +19,7 @@ const firebaseConfig = {
 };
 
 // Verificação de segurança para evitar crash na inicialização do preview do ai studio
-if (!firebaseConfig.apiKey && process.env.NODE_ENV !== 'production') {
+if (!firebaseConfig.apiKey && import.meta.env.DEV) {
   console.warn("Aviso: Variáveis de ambiente do Firebase não encontradas. Certifique-se de configurá-las no menu de Settings.");
 }
 
