@@ -18,9 +18,14 @@ const firebaseConfig = {
   appId:             import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+// Verificação de segurança para evitar crash na inicialização do preview do ai studio
+if (!firebaseConfig.apiKey && process.env.NODE_ENV !== 'production') {
+  console.warn("Aviso: Variáveis de ambiente do Firebase não encontradas. Certifique-se de configurá-las no menu de Settings.");
+}
+
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app, import.meta.env.VITE_FIREBASE_DATABASE_ID);
+export const db = getFirestore(app, import.meta.env.VITE_FIREBASE_DATABASE_ID || '(default)');
 const provider = new GoogleAuthProvider();
 
 export const loginWithGoogle = () => signInWithPopup(auth, provider);
